@@ -15,36 +15,30 @@ int main()
 {
    // tid_map is used to inform the simulator how
    // thread ids map to NUMA/cache domains. Using
-   // the tid as an index gives the NUMA domain, so
-   // in this case each thread runs in a separate domain
-   // except for threads 0 and 1.
-   unsigned int arr_map[] = {0,0,1,2,3};
+   // the tid as an index gives the NUMA domain.
+   unsigned int arr_map[] = {0};
    vector<unsigned int> tid_map(arr_map, arr_map + 
          sizeof(arr_map) / sizeof(unsigned int));
    // The constructor parameters are: Number of caches/domains,
    // the tid_map, the cache line size in bytes,
-   // number of cache lines, and the associativity.
-   System sys(4, tid_map, 64, 32768, 32);
-   unsigned int tid;
+   // number of cache lines, the associativity,
+   // and whether to count compulsory misses
+   System sys(1, tid_map, 64, 1024, 2, true);
    char rw;
    unsigned long long address;
    long lines = 0;
    ifstream infile;
-   infile.open("cachedata.out", ifstream::in);
-   string line;
-   istringstream ss;
+   infile.open("/run/media/jfunston/Seagate Expansion Drive/pinatrace.out", ifstream::in | ifstream::binary);
+   assert(infile.is_open());
 
-   while(getline(infile, line))
+   while(!infile.eof())
    {
-      ss.clear();
-      ss.str(line);
-      ss >> tid;
-      ss >> rw;
-      ss >> hex >> address;
-
+      infile.read(&rw, sizeof(char));
       assert(rw == 'R' || rw == 'W');
+
+      infile.read((char*)&address, sizeof(unsigned long long));
       if(address != 0)
-         sys.memAccess(address, rw, tid, false);
+         sys.memAccess(address, rw, 0, false);
 
       lines++;
    }

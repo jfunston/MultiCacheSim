@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <map>
+#include <set>
 #include <list>
 
 using namespace std;
@@ -48,8 +49,10 @@ class System{
    static const unsigned int prefetchNum = 3;
    unsigned long long SET_MASK;
    unsigned long long TAG_MASK;
+   unsigned long long LINE_MASK;
    unsigned int SET_SHIFT;
    unsigned long long cycles;
+   set<unsigned long long> seen_lines; // Used for compulsory misses
    vector<unsigned long long> nextFreePage; //by domain
    vector<Cache> cpus;
    map<unsigned long long, unsigned int> pageList;
@@ -64,13 +67,17 @@ class System{
    bool isLocal(unsigned long long address, unsigned int local);
    void setRemoteStates(unsigned long long set, unsigned long long tag, 
                         cacheState state, unsigned int local);
+   void checkCompulsory(unsigned long long line);
 public:
    System(unsigned int num_domains, vector<unsigned int> tid_to_domain,
-            unsigned int line_size, unsigned int num_lines, unsigned int assoc);
+            unsigned int line_size, unsigned int num_lines, unsigned int assoc,
+            bool count_compulsory=false);
    void memAccess(unsigned long long address, char rw, unsigned int tid, 
                      bool isPrefetch);
    unsigned long long hits, local_reads, remote_reads, othercache_reads,
       local_writes, remote_writes;
+  unsigned long long compulsory;
+  bool countCompulsory;
 };
 
 

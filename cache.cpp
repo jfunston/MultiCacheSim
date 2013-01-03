@@ -156,7 +156,8 @@ int System::prefetchHit(unsigned long long address, unsigned int tid)
 
 
 System::System(unsigned int num_domains, vector<unsigned int> tid_to_domain,
-            unsigned int line_size, unsigned int num_lines, unsigned int assoc)
+            unsigned int line_size, unsigned int num_lines, unsigned int assoc,
+            bool count_compulsory /*=false*/)
 {
    assert(num_lines % assoc == 0);
 
@@ -166,14 +167,16 @@ System::System(unsigned int num_domains, vector<unsigned int> tid_to_domain,
    }
 
    hits = local_reads = remote_reads = othercache_reads = local_writes = remote_writes = 0;
-   lastMiss = lastPrefetch = cycles = 0;
+   lastMiss = lastPrefetch = cycles = compulsory = 0;
 
    SET_SHIFT = log2(line_size);
    SET_MASK = ((num_lines / assoc) - 1) << SET_SHIFT;
    TAG_MASK = ~(SET_MASK | (SET_MASK >> SET_SHIFT));
+   LINE_MASK = SET_MASK | TAG_MASK;
 
    // nextFreePage = 0;
   
+   countCompulsory = count_compulsory;
    this->tid_to_domain = tid_to_domain;
 }
 
@@ -235,6 +238,11 @@ bool System::isLocal(unsigned long long address,
       return false;
 }
 
+void System::checkCompulsory(unsigned long long line)
+{
+   return;
+}
+
 int System::checkRemoteStates(unsigned long long set, unsigned long long tag, 
                               cacheState& state, unsigned int local)
 {
@@ -288,9 +296,12 @@ void System::memAccess(unsigned long long address, char rw, unsigned int tid,
    cacheState state = cpus[local].findTag(set, tag);
    bool hit = (state != INV);
 
+   if(countCompulsory && !isPrefetch) {
+      checkCompulsory(address & LINE_MASK);
+   }
+
    // Handle hits 
-   if(rw == 'W' && hit)
-   {  
+   if(rw == 'W' && hit) {  
       cpus[local].changeState(set, tag, MOD);
       setRemoteStates(set, tag, INV, local);
    }
