@@ -1,0 +1,79 @@
+Author: Justin Funston
+Date: March 2012
+Email: jfunston@sfu.ca
+
+Version 1.1
+
+CHANGELOG
+---------
+1.1: Fixed bug related to write misses
+1.0: Initial version
+
+This document describes the usage of my cache simulator program,
+designed to be used with memory access traces obtained with Pin
+(www.pintool.org)
+
+DESCRIPTION
+-----------
+
+The simulator closely models an Opteron cache. It uses the MOESI
+cache coherency protocol, an LRU replacement policy, and a 
+prefetcher similar to the Opteron L1 prefetcher. The first-touch
+policy is used to determine which NUMA domain a page is placed in.
+
+The primary differences from a real Opteron cache are: the
+replacement policy is somewhat less sophisticated, only one level
+of cache is simulated, and the prefetcher uses a fixed prefetching
+distance.
+
+COMPILATION
+-----------
+
+Simply run "make" to compile the simulator with the example driver
+program (main.cpp). If you are modifying the simulator, use the
+DEBUG flags in the Makefile which enables run-time error checking
+in the simulator.
+
+USAGE
+-----
+
+See main.cpp for an example of using the simulator. The basic
+steps are:
+1. Create a vector mapping thread IDs to NUMA domains,
+      where the index into the vector represents the TID
+2. Create a System object using the constructor, which takes
+      the number of caches/NUMA domains, the vector from step 1,
+      the size of a cache line in bytes, the number of cache lines,
+      and the associativity
+3. Call System::memAccess for each memory access, in order,
+      passing the address, read or write (as an 'R' or 'W'
+      character), and the TID of the accessing thread.
+4. Read the statistics from the System object
+
+There are two configuration options that must be changed in cache.h
+if desired: PAGE_MASK which determines the page size (default is
+4 KB), and prefetchNum which indicates how many lines to prefetch
+for a prefetch event (default 3).
+
+MULTI-PROCESS WORKLOADS
+-----------------------
+
+To use the simulator with a multi-process workload, only the driver
+program needs to be modified.
+
+First, give each of your processes a unique ID starting with 0 and
+increasing by 1 (mimicking TIDs), and use it as the TID in the steps
+above.
+
+Since the same virtual address in different processes actually refers
+to different physical addresses, we need a way to differentiate them
+in the simulator. To do this we take advantage of the fact that only
+the least significant 48 bits of an address are used in practice:
+address |= TID << (7*8);
+This places the TID in first byte of the address, ensuring that
+addresses are unique among processes.
+
+If the workload uses a shared memory region, find the range for the
+region. If an address lies within the range, do not modify the
+address as described above, thus making all addresses in the shared
+range actually shared among processes.
