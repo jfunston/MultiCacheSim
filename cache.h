@@ -52,7 +52,7 @@ class System{
    unsigned long long LINE_MASK;
    unsigned int SET_SHIFT;
    unsigned long long cycles;
-   set<unsigned long long> seen_lines; // Used for compulsory misses
+   set<unsigned long long> seenLines; // Used for compulsory misses
    vector<unsigned long long> nextFreePage; //by domain
    vector<Cache> cpus;
    map<unsigned long long, unsigned int> pageList;

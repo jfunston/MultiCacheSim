@@ -23,10 +23,10 @@ int main()
    // the tid_map, the cache line size in bytes,
    // number of cache lines, the associativity,
    // and whether to count compulsory misses
-   System sys(1, tid_map, 64, 1024, 2, true);
+   System sys(1, tid_map, 64, 1024, 2, false);
    char rw;
    unsigned long long address;
-   long lines = 0;
+   unsigned long long lines = 0;
    ifstream infile;
    infile.open("/run/media/jfunston/Seagate Expansion Drive/pinatrace.out", ifstream::in | ifstream::binary);
    assert(infile.is_open());
@@ -40,16 +40,21 @@ int main()
       if(address != 0)
          sys.memAccess(address, rw, 0, false);
 
-      lines++;
+      ++lines;
+      if(lines > 1000000) {
+         break;
+      }
    }
 
    cout << "Accesses: " << lines << endl;
    cout << "Hits: " << sys.hits << endl;
+   cout << "Misses: " << lines - sys.hits << endl;
    cout << "Local reads: " << sys.local_reads << endl;
    cout << "Local writes: " << sys.local_writes << endl;
-   cout << "Remote reads: " << sys.remote_reads << endl;
-   cout << "Remote writes: " << sys.remote_writes << endl;
-   cout << "Other-cache reads: " << sys.othercache_reads << endl;
+   cout << "Compulsory Misses: " << sys.compulsory << endl;
+   //cout << "Remote reads: " << sys.remote_reads << endl;
+   //cout << "Remote writes: " << sys.remote_writes << endl;
+   //cout << "Other-cache reads: " << sys.othercache_reads << endl;
    
    infile.close();
 

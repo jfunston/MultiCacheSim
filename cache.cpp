@@ -240,7 +240,13 @@ bool System::isLocal(unsigned long long address,
 
 void System::checkCompulsory(unsigned long long line)
 {
-   return;
+   set<unsigned long long>::iterator it;
+
+   it = seenLines.find(line);
+   if(it == seenLines.end()) {
+      ++compulsory;
+      seenLines.insert(line);
+   }
 }
 
 int System::checkRemoteStates(unsigned long long set, unsigned long long tag, 

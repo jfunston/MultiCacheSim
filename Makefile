@@ -1,6 +1,6 @@
-DEBUG_FLAGS = -O2 -g -Wall -Wextra -DDEBUG
-RELEASE_FLAGS = -O3 -march=native
-COMPILE_FLAGS=$(DEBUG_FLAGS)
+DEBUG_FLAGS = -O2 -g -Wall -Wextra -DDEBUG -pg
+RELEASE_FLAGS = -O3 -march=native -Wall -Wextra
+COMPILE_FLAGS=$(RELEASE_FLAGS)
 
 all: cache tags check cscope.out 
 
