@@ -309,14 +309,15 @@ void System::memAccess(unsigned long long address, char rw, unsigned int tid,
    // Handle hits 
    if(rw == 'W' && hit) {  
       cpus[local].changeState(set, tag, MOD);
+// Optimizations for single cache simulation
+#ifdef MULTI_CACHE
       setRemoteStates(set, tag, INV, local);
+#endif
    }
 
-   if(hit)
-   {
+   if(hit) {
       cpus[local].updateLRU(set, tag);
-      if(!isPrefetch)
-      {
+      if(!isPrefetch) {
          hits++;
          prefetchHit(address, tid);
       }
@@ -328,16 +329,23 @@ void System::memAccess(unsigned long long address, char rw, unsigned int tid,
 
    // Now handle miss cases
    cacheState remote_state;
-   int remote;
+#ifdef MULTI_CACHE
    remote = checkRemoteStates(set, tag, remote_state, local);
+#else
+   remote_state = INV;
+#endif
    cacheState new_state = INV;
 
    unsigned long long evicted_tag;
    bool writeback = cpus[local].checkWriteback(set, evicted_tag);
    if(writeback)
       evictTraffic(set, evicted_tag, local, isPrefetch);
-   
+
+#ifdef MULTI_CACHE 
    bool local_traffic = isLocal(address, local);
+#else
+   bool local_traffic = true;
+#endif
 
    if(remote_state == INV && rw == 'R')
    {
@@ -355,6 +363,7 @@ void System::memAccess(unsigned long long address, char rw, unsigned int tid,
       else if(!isPrefetch)
          remote_reads++;
    }
+#ifdef MULTI_CACHE
    else if(remote_state == SHA && rw == 'R')
    {
       new_state = SHA;
@@ -392,6 +401,7 @@ void System::memAccess(unsigned long long address, char rw, unsigned int tid,
       if(!isPrefetch)
          othercache_reads++;
    }
+#endif
 
    #ifdef DEBUG
    assert(new_state != INV);

@@ -23,6 +23,7 @@ int main()
    // the tid_map, the cache line size in bytes,
    // number of cache lines, the associativity,
    // and whether to count compulsory misses
+   // WARNING: counting compulsory misses doubles execution time
    System sys(1, tid_map, 64, 1024, 2, false);
    char rw;
    unsigned long long address;
@@ -41,7 +42,7 @@ int main()
          sys.memAccess(address, rw, 0, false);
 
       ++lines;
-      if(lines > 1000000) {
+      if(lines > 10000000) {
          break;
       }
    }
