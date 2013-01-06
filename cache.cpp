@@ -169,10 +169,10 @@ System::System(unsigned int num_domains, vector<unsigned int> tid_to_domain,
    hits = local_reads = remote_reads = othercache_reads = local_writes = remote_writes = 0;
    lastMiss = lastPrefetch = cycles = compulsory = 0;
 
+   LINE_MASK = ((unsigned long long) line_size)-1;
    SET_SHIFT = log2(line_size);
    SET_MASK = ((num_lines / assoc) - 1) << SET_SHIFT;
-   TAG_MASK = ~(SET_MASK | (SET_MASK >> SET_SHIFT));
-   LINE_MASK = SET_MASK | TAG_MASK;
+   TAG_MASK = ~(SET_MASK | LINE_MASK);
 
    // nextFreePage = 0;
   
