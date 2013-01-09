@@ -23,6 +23,10 @@ tags: *.cpp *.h
 cscope.out: *.cpp *.h
 	cscope -Rb
 
+.PHONY: backup
+backup:
+	git push -u linode master
+
 .PHONY: check
 check:
 	cppcheck --enable=all .
