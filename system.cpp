@@ -129,6 +129,7 @@ void System::setRemoteStates(unsigned long long set, unsigned long long tag,
 void System::evictTraffic(unsigned long long set, unsigned long long tag,
                            unsigned int local, bool isPrefetch)
 {
+#ifdef MULTI_CACHE
    unsigned long long page = ((set << SET_SHIFT) | tag) & PAGE_MASK;
 #ifdef DEBUG
    map<unsigned long long, unsigned int>::iterator it;
@@ -136,6 +137,10 @@ void System::evictTraffic(unsigned long long set, unsigned long long tag,
    assert(it != pageList.end());
 #endif
    unsigned int domain = pageList[page];
+#else
+   unsigned int domain = local;
+#endif
+
    if(domain == local && !isPrefetch)
       local_writes++;
    else if(!isPrefetch)

@@ -15,6 +15,21 @@ Misses: 23439537618
 Local reads: 23439537618
 Local writes: 59410316
 
+2-way, virtToPhys, linear 4KB page allocation
+Accesses: 65640904128
+Hits: 42017068755
+Misses: 23623835373
+Local reads: 23623835373
+Local writes: 12261482
+
+2-way, virtToPhys, linear 2MB page allocation
+Accesses: 65640904128
+Hits: 42077146192
+Misses: 23563757936
+Local reads: 23563757936
+Local writes: 0
+
+
 list implementation 10M accesses, fully-associative
 Hits: 6385156
 Misses: 3614844
