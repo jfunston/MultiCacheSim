@@ -2,16 +2,19 @@
 # this optimization provides ~10% speedup for single cache
 # simulations.
 
-DEBUG_FLAGS = -O2 -g -Wall -Wextra -DDEBUG
-RELEASE_FLAGS = -O3 -march=native -Wall -Wextra
+DEBUG_FLAGS = -O2 -g -Wall -Wextra -DDEBUG -std=gnu++11
+RELEASE_FLAGS = -O3 -march=native -Wall -Wextra -std=gnu++11
 COMPILE_FLAGS=$(RELEASE_FLAGS)
 
 all: cache tags check cscope.out 
 
-cache: main.cpp cache.h cache.o Makefile
-	g++ $(COMPILE_FLAGS) -o cache main.cpp cache.o
+cache: main.cpp system.h cache.o system.o Makefile
+	g++ $(COMPILE_FLAGS) -o cache main.cpp cache.o system.o
 
-cache.o: cache.cpp cache.h Makefile
+system.o: system.cpp cache.h system.h misc.h Makefile
+	g++ $(COMPILE_FLAGS) -c system.cpp
+
+cache.o: cache.cpp cache.h misc.h Makefile
 	g++ $(COMPILE_FLAGS) -c cache.cpp
 
 tags: *.cpp *.h

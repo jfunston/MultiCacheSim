@@ -1,8 +1,9 @@
 // Author: Justin Funston
 // Date: November 2011
+// Modified: January 2013
 // Email: jfunston@sfu.ca
 
-#include "cache.h"
+#include "system.h"
 #include <iostream>
 #include <fstream>
 #include <cassert>
@@ -24,7 +25,7 @@ int main()
    // number of cache lines, the associativity,
    // and whether to count compulsory misses
    // WARNING: counting compulsory misses doubles execution time
-   System sys(1, tid_map, 64, 1024, 1024, false);
+   System sys(1, tid_map, 64, 1024, 8, false);
    char rw;
    unsigned long long address;
    unsigned long long lines = 0;
@@ -42,6 +43,8 @@ int main()
          sys.memAccess(address, rw, 0, false);
 
       ++lines;
+      if(lines >= 10000000)
+         break;
    }
 
    cout << "Accesses: " << lines << endl;

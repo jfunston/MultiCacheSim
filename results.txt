@@ -1,0 +1,131 @@
+1 cache 2-way 64kb
+
+Accesses: 65640904128
+Hits: 42229004513
+Misses: 23411899615
+Local reads: 23411899615
+Local writes: 53364547
+Compulsory Misses: 2621992
+
+fully associative
+
+Accesses: 65640904128
+Hits: 42201366510
+Misses: 23439537618
+Local reads: 23439537618
+Local writes: 59410316
+
+list implementation 10M accesses, fully-associative
+Hits: 6385156
+Misses: 3614844
+Local reads: 3614844
+Local writes: 2263
+real 59.51
+user 58.87
+sys 0.02
+
+512-way
+Hits: 6387024
+Misses: 3612976
+Local reads: 3612976
+Local writes: 2217
+real 17.07
+user 16.99
+sys 0.01
+
+64-way
+Hits: 6388209
+Misses: 3611791
+Local reads: 3611791
+Local writes: 2182
+real 2.90
+user 2.88
+sys 0.01
+
+8-way
+Hits: 6385574
+Misses: 3614426
+Local reads: 3614426
+Local writes: 2212
+real 1.37
+user 1.36
+sys 0.01
+
+4-way
+Hits: 6383581
+Misses: 3616419
+Local reads: 3616419
+Local writes: 2410
+real 1.29
+user 1.28
+sys 0.01
+
+2-way
+Hits: 6380463
+Misses: 3619537
+Local reads: 3619537
+Local writes: 3315
+real 1.30
+user 1.27
+sys 0.01
+
+64-way 3.4 vs deque 2.16
+8 1.48        1.21
+4 1.41
+2 1.38        1.09
+
+set implementation, list+unordered_map LRU implementation
+
+fully-associative
+Hits: 6385156
+Misses: 3614844
+Local reads: 3614844
+Local writes: 2263
+real 3.32
+user 3.29
+sys 0.01
+
+512-way
+Hits: 6387024
+Misses: 3612976
+Local reads: 3612976
+Local writes: 2217
+real 3.40
+user 3.37
+sys 0.01
+
+64-way
+Hits: 6388209
+Misses: 3611791
+Local reads: 3611791
+Local writes: 2182
+real 3.04
+user 3.01
+sys 0.01
+
+8-way
+Hits: 6385574
+Misses: 3614426
+Local reads: 3614426
+Local writes: 2212
+real 2.67
+user 2.65
+sys 0.01
+
+4-way
+Hits: 6383581
+Misses: 3616419
+Local reads: 3616419
+Local writes: 2410
+real 2.40
+user 2.37
+sys 0.01
+
+2-way
+Hits: 6380463
+Misses: 3619537
+Local reads: 3619537
+Local writes: 3315
+real 2.31
+user 2.28
+sys 0.01
