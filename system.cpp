@@ -62,7 +62,7 @@ int System::prefetchHit(unsigned long long address, unsigned int tid)
 
 System::System(unsigned int num_domains, vector<unsigned int> tid_to_domain,
             unsigned int line_size, unsigned int num_lines, unsigned int assoc,
-            bool count_compulsory /*=false*/)
+            bool count_compulsory /*=false*/, bool do_addr_trans /*=false*/)
 {
    assert(num_lines % assoc == 0);
 
@@ -87,9 +87,10 @@ System::System(unsigned int num_domains, vector<unsigned int> tid_to_domain,
    SET_MASK = ((num_lines / assoc) - 1) << SET_SHIFT;
    TAG_MASK = ~(SET_MASK | LINE_MASK);
 
-   // nextFreePage = 0;
+   nextPage = 0;
   
    countCompulsory = count_compulsory;
+   doAddrTrans = do_addr_trans;
    this->tid_to_domain = tid_to_domain;
 }
 
@@ -100,12 +101,11 @@ System::~System()
    }
 }
 
-// Translates virtual addresses to physical addresses
 // Keeps track of which NUMA domain each memory page is in,
 // using a first-touch policy
 void System::updatePageList(unsigned long long address, unsigned int curDomain)
 {
-   map<unsigned long long, unsigned int>::iterator it;
+   map<unsigned long long, unsigned long long>::iterator it;
    unsigned long long page = address & PAGE_MASK;
 
    it = pageList.find(page);
@@ -214,13 +214,24 @@ int System::checkRemoteStates(unsigned long long set, unsigned long long tag,
 void System::memAccess(unsigned long long address, char rw, unsigned int tid,
                         bool isPrefetch)
 {
+   unsigned long long set, tag;
+   bool hit;
+   cacheState state;
+
+#ifdef MULTI_CACHE 
    unsigned int local = tid_to_domain[tid];
    updatePageList(address, local);
+#else
+   unsigned int local = 0;
+#endif
 
-   unsigned long long set = (address & SET_MASK) >> SET_SHIFT;
-   unsigned long long tag = address & TAG_MASK;
-   cacheState state = cpus[local]->findTag(set, tag);
-   bool hit = (state != INV);
+   if(doAddrTrans) {
+      address = virtToPhys(address);
+   }
+   set = (address & SET_MASK) >> SET_SHIFT;
+   tag = address & TAG_MASK;
+   state = cpus[local]->findTag(set, tag);
+   hit = (state != INV);
 
    if(countCompulsory && !isPrefetch) {
       checkCompulsory(address & LINE_MASK);
@@ -330,3 +341,24 @@ void System::memAccess(unsigned long long address, char rw, unsigned int tid,
    cpus[local]->insertLine(set, tag, new_state);
 }
 
+unsigned long long System::virtToPhys(unsigned long long address)
+{
+   map<unsigned long long, unsigned long long>::iterator it;
+   unsigned long long virt_page = address & PAGE_MASK;
+   unsigned long long phys_page;
+   unsigned long long phys_addr = address & (~PAGE_MASK);
+
+   it = pageList.find(virt_page);
+   if(it != pageList.end()) {
+      phys_page = it->second;
+      phys_addr |= phys_page;
+   }
+   else {
+      phys_page = nextPage << PAGE_SHIFT;
+      phys_addr |= phys_page;
+      pageList.insert(make_pair(virt_page, phys_page));
+      ++nextPage;
+   }
+
+   return phys_addr;
+}

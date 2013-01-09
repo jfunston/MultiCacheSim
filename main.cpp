@@ -23,9 +23,10 @@ int main()
    // The constructor parameters are: Number of caches/domains,
    // the tid_map, the cache line size in bytes,
    // number of cache lines, the associativity,
-   // and whether to count compulsory misses
+   // whether to count compulsory misses,
+   // and whether to do virtual to physical translation
    // WARNING: counting compulsory misses doubles execution time
-   System sys(1, tid_map, 64, 1024, 8, false);
+   System sys(1, tid_map, 64, 1024, 2, false, true);
    char rw;
    unsigned long long address;
    unsigned long long lines = 0;
@@ -43,8 +44,6 @@ int main()
          sys.memAccess(address, rw, 0, false);
 
       ++lines;
-      if(lines >= 10000000)
-         break;
    }
 
    cout << "Accesses: " << lines << endl;
