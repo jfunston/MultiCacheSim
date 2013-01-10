@@ -134,8 +134,7 @@ DequeCache::DequeCache(unsigned int num_lines, unsigned int assoc)
    // The set bits of the address will be used as an index
    // into sets. Each set is a deque containing "assoc" items
    sets.resize(num_lines / assoc);
-   for(unsigned int i=0; i < sets.size(); i++)
-   {
+   for(unsigned int i=0; i < sets.size(); i++) {
       sets[i].resize(assoc);
    }
 }
@@ -205,11 +204,17 @@ void DequeCache::updateLRU(unsigned long long set, unsigned long long tag)
 // main memory.
 bool DequeCache::checkWriteback(unsigned long long set, unsigned long long& tag) const
 {
+   bool writeback;
    cacheLine evict = sets[set].front();
    tag = evict.tag;
-   if(evict.state == MOD || evict.state == OWN)
-      return true;
-   return false;
+   if(evict.state == MOD || evict.state == OWN) {
+      writeback = true;
+   }
+   else {
+      writeback = false;
+   }
+
+   return writeback;
 }
 
 // Insert a new cache line by popping the least recently used line

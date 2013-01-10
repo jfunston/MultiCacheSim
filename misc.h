@@ -5,7 +5,7 @@
 #ifndef MISC_H
 #define MISC_H
 
-#define PAGE_SIZE_2MB
+#define PAGE_SIZE_4KB
 
 #ifdef PAGE_SIZE_4KB
 const unsigned long long PAGE_MASK = 0xFFFFFFFFFFFFF000;

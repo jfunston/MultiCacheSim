@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <cstdlib>
 #include "misc.h"
 #include "cache.h"
 #include "system.h"
@@ -20,10 +21,8 @@ int System::prefetchMiss(unsigned long long address, unsigned int tid)
    unsigned long long lastTag = lastMiss & TAG_MASK;
    int prefetched = 0;
 
-   if(tag == lastTag && (lastSet+1) == set)
-   {
-      for(unsigned int i=0; i < prefetchNum; i++)
-      {
+   if(tag == lastTag && (lastSet+1) == set) {
+      for(unsigned int i=0; i < prefetchNum; i++) {
          prefetched++;
          // Call memAccess to resolve the prefetch. The address is 
          // incremented in the set portion of its bits (least
@@ -47,8 +46,7 @@ int System::prefetchHit(unsigned long long address, unsigned int tid)
    unsigned long long lastSet = (lastPrefetch & SET_MASK) >> SET_SHIFT;
    unsigned long long lastTag = lastPrefetch & TAG_MASK;
 
-   if(tag == lastTag && lastSet == set)
-   {
+   if(tag == lastTag && lastSet == set) {
       // Call memAccess to resolve the prefetch. The address is 
       // incremented in the set portion of its bits (least
       // significant bits not in the cache line offset portion)
@@ -109,8 +107,7 @@ void System::updatePageList(unsigned long long address, unsigned int curDomain)
    unsigned long long page = address & PAGE_MASK;
 
    it = pageList.find(page);
-   if(it == pageList.end())
-   {
+   if(it == pageList.end()) {
       pageList[page] = curDomain;
    }
 }
@@ -118,10 +115,10 @@ void System::updatePageList(unsigned long long address, unsigned int curDomain)
 void System::setRemoteStates(unsigned long long set, unsigned long long tag,
                         cacheState state, unsigned int local)
 {
-   for(unsigned int i=0; i<cpus.size(); i++)
-   {
-      if(i != local)
+   for(unsigned int i=0; i<cpus.size(); i++) {
+      if(i != local) {
          cpus[i]->changeState(set, tag, state);
+      }
    }
 }
 
@@ -157,10 +154,12 @@ bool System::isLocal(unsigned long long address,
    assert(it != pageList.end());
 #endif
    unsigned int domain = pageList[page];
-   if(domain == local)
+   if(domain == local) {
       return true;
-   else
+   }
+   else {
       return false;
+   }
 }
 
 void System::checkCompulsory(unsigned long long line)
@@ -181,31 +180,25 @@ int System::checkRemoteStates(unsigned long long set, unsigned long long tag,
    state = INV;
    int remote = 0;
 
-   for(unsigned int i=0; i<cpus.size(); i++)
-   {
-      if(i != local)
-      {
+   for(unsigned int i=0; i<cpus.size(); i++) {
+      if(i != local) {
          curState = cpus[i]->findTag(set, tag);
-         if(curState == OWN)
-         {
+         if(curState == OWN) {
             state = OWN;
             return i;
          }
-         else if(curState == SHA)
-         {
+         else if(curState == SHA) {
             state = SHA;
             // A cache line in a shared state may be
             // in the owned state in a different cache
             // so don't return i immdiately
             remote = i;
          }
-         else if(curState == EXC)
-         {
+         else if(curState == EXC) {
             state = EXC;
             return i;
          }
-         else if(curState == MOD)
-         {
+         else if(curState == MOD) {
             state = MOD;
             return i;
          }
@@ -223,6 +216,7 @@ void System::memAccess(unsigned long long address, char rw, unsigned int tid,
    bool hit;
    cacheState state;
 
+// Optimizations for single cache simulation
 #ifdef MULTI_CACHE 
    unsigned int local = tid_to_domain[tid];
    updatePageList(address, local);
@@ -230,9 +224,14 @@ void System::memAccess(unsigned long long address, char rw, unsigned int tid,
    unsigned int local = 0;
 #endif
 
+// Address translation and MULTI_CACHE are
+// currently mutually exclusive
+#ifndef MULTI_CACHE
    if(doAddrTrans) {
       address = virtToPhys(address);
    }
+#endif
+
    set = (address & SET_MASK) >> SET_SHIFT;
    tag = address & TAG_MASK;
    state = cpus[local]->findTag(set, tag);
@@ -245,7 +244,6 @@ void System::memAccess(unsigned long long address, char rw, unsigned int tid,
    // Handle hits 
    if(rw == 'W' && hit) {  
       cpus[local]->changeState(set, tag, MOD);
-// Optimizations for single cache simulation
 #ifdef MULTI_CACHE
       setRemoteStates(set, tag, INV, local);
 #endif
@@ -260,8 +258,9 @@ void System::memAccess(unsigned long long address, char rw, unsigned int tid,
       return;
    }
 
-   if(!isPrefetch)
+   if(!isPrefetch) {
       prefetchMiss(address, tid);
+   }
 
    // Now handle miss cases
    cacheState remote_state;
@@ -283,59 +282,62 @@ void System::memAccess(unsigned long long address, char rw, unsigned int tid,
    bool local_traffic = true;
 #endif
 
-   if(remote_state == INV && rw == 'R')
-   {
+   if(remote_state == INV && rw == 'R') {
       new_state = EXC;
-      if(local_traffic && !isPrefetch)
+      if(local_traffic && !isPrefetch) {
          local_reads++;
-      else if(!isPrefetch)
+      }
+      else if(!isPrefetch) {
          remote_reads++;
+      }
    }
-   else if(remote_state == INV && rw == 'W')
-   {
+   else if(remote_state == INV && rw == 'W') {
       new_state = MOD;
-      if(local_traffic && !isPrefetch)
+      if(local_traffic && !isPrefetch) {
          local_reads++;
-      else if(!isPrefetch)
+      }
+      else if(!isPrefetch) {
          remote_reads++;
+      }
    }
 #ifdef MULTI_CACHE
-   else if(remote_state == SHA && rw == 'R')
-   {
+   else if(remote_state == SHA && rw == 'R') {
       new_state = SHA;
-      if(local_traffic && !isPrefetch)
+      if(local_traffic && !isPrefetch) {
          local_reads++;
-      else if(!isPrefetch)
+      }
+      else if(!isPrefetch) {
          remote_reads++;
+      }
    }
-   else if(remote_state == SHA && rw == 'W')
-   {
+   else if(remote_state == SHA && rw == 'W') {
       new_state = MOD;
       setRemoteStates(set, tag, INV, local);
-      if(!isPrefetch)
+      if(!isPrefetch) {
          othercache_reads++;
+      }
    }
-   else if((remote_state == MOD || remote_state == OWN) && rw == 'R')
-   {
+   else if((remote_state == MOD || remote_state == OWN) && rw == 'R') {
       new_state = SHA;
       cpus[remote]->changeState(set, tag, OWN);
-      if(!isPrefetch)
+      if(!isPrefetch) {
          othercache_reads++;
+      }
    }
    else if((remote_state == MOD || remote_state == OWN || remote_state == EXC) 
-            && rw == 'W')
-   {
+            && rw == 'W') {
       new_state = MOD;
       setRemoteStates(set, tag, INV, local);
-      if(!isPrefetch)
+      if(!isPrefetch) {
          othercache_reads++;
+      }
    }
-   else if(remote_state == EXC && rw == 'R')
-   {
+   else if(remote_state == EXC && rw == 'R') {
       new_state = SHA;
       cpus[remote]->changeState(set, tag, SHA);
-      if(!isPrefetch)
+      if(!isPrefetch) {
          othercache_reads++;
+      }
    }
 #endif
 
@@ -362,6 +364,7 @@ unsigned long long System::virtToPhys(unsigned long long address)
       phys_page = nextPage << PAGE_SHIFT;
       phys_addr |= phys_page;
       pageList.insert(make_pair(virt_page, phys_page));
+      //nextPage += rand() % 200 + 5 ;
       ++nextPage;
    }
 

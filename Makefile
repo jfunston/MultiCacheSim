@@ -33,4 +33,4 @@ check:
 
 .PHONY: clean
 clean:
-	rm -f cache.o cache
+	rm -f *.o cache tags cscope.out

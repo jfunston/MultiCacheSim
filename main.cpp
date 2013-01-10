@@ -26,7 +26,7 @@ int main()
    // whether to count compulsory misses,
    // and whether to do virtual to physical translation
    // WARNING: counting compulsory misses doubles execution time
-   System sys(1, tid_map, 64, 1024, 2, false, true);
+   System sys(1, tid_map, 64, 1024, 1024, false, true);
    char rw;
    unsigned long long address;
    unsigned long long lines = 0;
