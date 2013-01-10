@@ -5,17 +5,16 @@
 DEBUG_FLAGS = -O2 -g -Wall -Wextra -DDEBUG -std=gnu++11
 RELEASE_FLAGS = -O3 -march=native -Wall -Wextra -std=gnu++11
 COMPILE_FLAGS=$(RELEASE_FLAGS)
+DEPS=$(wildcard *.h) Makefile
+OBJ=system.o cache.o seq_prefetch_system.o
 
 all: cache tags check cscope.out 
 
-cache: main.cpp system.h cache.o system.o Makefile
-	g++ $(COMPILE_FLAGS) -o cache main.cpp cache.o system.o
+cache: main.cpp $(DEPS) $(OBJ)
+	g++ $(COMPILE_FLAGS) -o cache main.cpp $(OBJ)
 
-system.o: system.cpp cache.h system.h misc.h Makefile
-	g++ $(COMPILE_FLAGS) -c system.cpp
-
-cache.o: cache.cpp cache.h misc.h Makefile
-	g++ $(COMPILE_FLAGS) -c cache.cpp
+%.o: %.c $(DEPS)
+	g++ $(COMPILE_FLAGS) -c -o $@ $<
 
 tags: *.cpp *.h
 	ctags *.cpp *.h
