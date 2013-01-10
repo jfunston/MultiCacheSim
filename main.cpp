@@ -26,7 +26,7 @@ int main()
    // whether to count compulsory misses,
    // and whether to do virtual to physical translation
    // WARNING: counting compulsory misses doubles execution time
-   SeqPrefetchSystem sys(1, tid_map, 64, 1024, 1024, false, true);
+   AdjPrefetchSystem sys(1, tid_map, 64, 1024, 1024);
    char rw;
    unsigned long long address;
    unsigned long long lines = 0;

@@ -57,8 +57,7 @@ int SeqPrefetchSystem::prefetchHit(unsigned long long address, unsigned int tid)
    return 1;
 }
 
-void SeqPrefetchSystem::memAccess(unsigned long long address, char rw, unsigned int tid,
-                        bool isPrefetch)
+void SeqPrefetchSystem::memAccess(unsigned long long address, char rw, unsigned     int tid, bool is_prefetch)
 {
    unsigned long long set, tag;
    bool hit;
@@ -85,7 +84,7 @@ void SeqPrefetchSystem::memAccess(unsigned long long address, char rw, unsigned 
    state = cpus[local]->findTag(set, tag);
    hit = (state != INV);
 
-   if(countCompulsory && !isPrefetch) {
+   if(countCompulsory && !is_prefetch) {
       checkCompulsory(address & LINE_MASK);
    }
 
@@ -99,15 +98,11 @@ void SeqPrefetchSystem::memAccess(unsigned long long address, char rw, unsigned 
 
    if(hit) {
       cpus[local]->updateLRU(set, tag);
-      if(!isPrefetch) {
+      if(!is_prefetch) {
          hits++;
          prefetchHit(address, tid);
       }
       return;
-   }
-
-   if(!isPrefetch) {
-      prefetchMiss(address, tid);
    }
 
    // Now handle miss cases
@@ -122,7 +117,7 @@ void SeqPrefetchSystem::memAccess(unsigned long long address, char rw, unsigned 
    unsigned long long evicted_tag;
    bool writeback = cpus[local]->checkWriteback(set, evicted_tag);
    if(writeback)
-      evictTraffic(set, evicted_tag, local, isPrefetch);
+      evictTraffic(set, evicted_tag, local, is_prefetch);
 
 #ifdef MULTI_CACHE 
    bool local_traffic = isLocal(address, local);
@@ -130,70 +125,11 @@ void SeqPrefetchSystem::memAccess(unsigned long long address, char rw, unsigned 
    bool local_traffic = true;
 #endif
 
-   if(remote_state == INV && rw == 'R') {
-      new_state = EXC;
-      if(local_traffic && !isPrefetch) {
-         local_reads++;
-      }
-      else if(!isPrefetch) {
-         remote_reads++;
-      }
-   }
-   else if(remote_state == INV && rw == 'W') {
-      new_state = MOD;
-      if(local_traffic && !isPrefetch) {
-         local_reads++;
-      }
-      else if(!isPrefetch) {
-         remote_reads++;
-      }
-   }
-#ifdef MULTI_CACHE
-   else if(remote_state == SHA && rw == 'R') {
-      new_state = SHA;
-      if(local_traffic && !isPrefetch) {
-         local_reads++;
-      }
-      else if(!isPrefetch) {
-         remote_reads++;
-      }
-   }
-   else if(remote_state == SHA && rw == 'W') {
-      new_state = MOD;
-      setRemoteStates(set, tag, INV, local);
-      if(!isPrefetch) {
-         othercache_reads++;
-      }
-   }
-   else if((remote_state == MOD || remote_state == OWN) && rw == 'R') {
-      new_state = SHA;
-      cpus[remote]->changeState(set, tag, OWN);
-      if(!isPrefetch) {
-         othercache_reads++;
-      }
-   }
-   else if((remote_state == MOD || remote_state == OWN || remote_state == EXC) 
-            && rw == 'W') {
-      new_state = MOD;
-      setRemoteStates(set, tag, INV, local);
-      if(!isPrefetch) {
-         othercache_reads++;
-      }
-   }
-   else if(remote_state == EXC && rw == 'R') {
-      new_state = SHA;
-      cpus[remote]->changeState(set, tag, SHA);
-      if(!isPrefetch) {
-         othercache_reads++;
-      }
-   }
-#endif
-
-#ifdef DEBUG
-   assert(new_state != INV);
-#endif
-
+   new_state = processMESI(remote_state, rw, is_prefetch, local_traffic);
    cpus[local]->insertLine(set, tag, new_state);
+   if(!is_prefetch) {
+      prefetchMiss(address, tid);
+   }
 }
 
 SeqPrefetchSystem::SeqPrefetchSystem(unsigned int num_domains, vector<unsigned int> tid_to_domain,

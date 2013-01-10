@@ -78,7 +78,7 @@ void System::setRemoteStates(unsigned long long set, unsigned long long tag,
 
 // Maintains the statistics for memory write-backs
 void System::evictTraffic(unsigned long long set, unsigned long long tag,
-                           unsigned int local, bool isPrefetch)
+                           unsigned int local, bool is_prefetch)
 {
 #ifdef MULTI_CACHE
    unsigned long long page = ((set << SET_SHIFT) | tag) & PAGE_MASK;
@@ -92,9 +92,9 @@ void System::evictTraffic(unsigned long long set, unsigned long long tag,
    unsigned int domain = local;
 #endif
 
-   if(domain == local && !isPrefetch)
+   if(domain == local && !is_prefetch)
       local_writes++;
-   else if(!isPrefetch)
+   else if(!is_prefetch)
       remote_writes++;
 }
 
@@ -184,4 +184,75 @@ unsigned long long System::virtToPhys(unsigned long long address)
    }
 
    return phys_addr;
+}
+
+cacheState System::processMESI(cacheState remote_state, char rw, 
+   bool is_prefetch, bool local_traffic)
+{
+   cacheState new_state = INV;
+
+   if(remote_state == INV && rw == 'R') {
+      new_state = EXC;
+      if(local_traffic && !is_prefetch) {
+         local_reads++;
+      }
+      else if(!is_prefetch) {
+         remote_reads++;
+      }
+   }
+   else if(remote_state == INV && rw == 'W') {
+      new_state = MOD;
+      if(local_traffic && !is_prefetch) {
+         local_reads++;
+      }
+      else if(!is_prefetch) {
+         remote_reads++;
+      }
+   }
+#ifdef MULTI_CACHE
+   else if(remote_state == SHA && rw == 'R') {
+      new_state = SHA;
+      if(local_traffic && !is_prefetch) {
+         local_reads++;
+      }
+      else if(!is_prefetch) {
+         remote_reads++;
+      }
+   }
+   else if(remote_state == SHA && rw == 'W') {
+      new_state = MOD;
+      setRemoteStates(set, tag, INV, local);
+      if(!is_prefetch) {
+         othercache_reads++;
+      }
+   }
+   else if((remote_state == MOD || remote_state == OWN) && rw == 'R') {
+      new_state = SHA;
+      cpus[remote]->changeState(set, tag, OWN);
+      if(!is_prefetch) {
+         othercache_reads++;
+      }
+   }
+   else if((remote_state == MOD || remote_state == OWN || remote_state == EXC) 
+            && rw == 'W') {
+      new_state = MOD;
+      setRemoteStates(set, tag, INV, local);
+      if(!is_prefetch) {
+         othercache_reads++;
+      }
+   }
+   else if(remote_state == EXC && rw == 'R') {
+      new_state = SHA;
+      cpus[remote]->changeState(set, tag, SHA);
+      if(!is_prefetch) {
+         othercache_reads++;
+      }
+   }
+#endif
+
+#ifdef DEBUG
+   assert(new_state != INV);
+#endif
+
+   return new_state;
 }

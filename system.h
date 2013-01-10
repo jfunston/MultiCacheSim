@@ -33,21 +33,25 @@ protected:
    void updatePageList(unsigned long long address, unsigned int curDomain);
    unsigned long long virtToPhys(unsigned long long address);
    void evictTraffic(unsigned long long set, unsigned long long tag, 
-                     unsigned int local, bool isPrefetch);
+                     unsigned int local, bool is_prefetch);
    bool isLocal(unsigned long long address, unsigned int local);
    void setRemoteStates(unsigned long long set, unsigned long long tag, 
                         cacheState state, unsigned int local);
    void checkCompulsory(unsigned long long line);
+   cacheState processMESI(cacheState remote_state, char rw,
+      bool is_prefetch, bool local_traffic);
 public:
    System(unsigned int num_domains, vector<unsigned int> tid_to_domain,
             unsigned int line_size, unsigned int num_lines, unsigned int assoc,
             bool count_compulsory=false, bool do_addr_trans=false);
+   virtual void memAccess(unsigned long long address, char rw, unsigned int tid, 
+                     bool is_prefetch) = 0;
    virtual ~System();
    unsigned long long hits, local_reads, remote_reads, othercache_reads,
       local_writes, remote_writes, compulsory;
 };
 
-// Modeling AMDs L1 Prefetcher
+// Modelling AMD's L1 Prefetcher
 class SeqPrefetchSystem : public System {
    unsigned long long lastMiss;
    unsigned long long lastPrefetch;
@@ -60,7 +64,19 @@ public:
             unsigned int line_size, unsigned int num_lines, unsigned int assoc,
             bool count_compulsory=false, bool do_addr_trans=false);
    void memAccess(unsigned long long address, char rw, unsigned int tid, 
-                     bool isPrefetch);
+                     bool is_prefetch);
+};
+
+// Modelling a simple adjacent line prefetcher
+// Doesn't implement compulsary miss counting
+// or address transalation (though it would be
+// easy to add)
+class AdjPrefetchSystem : public System {
+public:
+   AdjPrefetchSystem(unsigned int num_domains, vector<unsigned int> tid_to_domain,
+            unsigned int line_size, unsigned int num_lines, unsigned int assoc);
+   void memAccess(unsigned long long address, char rw, unsigned int tid, 
+                     bool is_prefetch);
 };
 
 #endif
