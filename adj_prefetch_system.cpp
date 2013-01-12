@@ -42,7 +42,7 @@ void AdjPrefetchSystem::memAccess(unsigned long long address, char rw, unsigned
    if(hit) {
       cpus[local]->updateLRU(set, tag);
       if(!is_prefetch) {
-         ++hits;
+         stats.hits++;
          //Prefetch next line
          memAccess(address + (1 << SET_SHIFT), 'R', tid, true);
       }
@@ -50,11 +50,9 @@ void AdjPrefetchSystem::memAccess(unsigned long long address, char rw, unsigned
    }
 
    // Now handle miss cases
-   cacheState remote_state;
+   cacheState remote_state = INV;
 #ifdef MULTI_CACHE
    remote = checkRemoteStates(set, tag, remote_state, local);
-#else
-   remote_state = INV;
 #endif
    cacheState new_state = INV;
 
@@ -72,7 +70,9 @@ void AdjPrefetchSystem::memAccess(unsigned long long address, char rw, unsigned
    new_state = processMESI(remote_state, rw, is_prefetch, local_traffic);
    cpus[local]->insertLine(set, tag, new_state);
    //Prefetch next line
-   memAccess(address + (1 << SET_SHIFT), 'R', tid, true);
+   if(!is_prefetch) {
+      memAccess(address + (1 << SET_SHIFT), 'R', tid, true);
+   }
 }
 
 AdjPrefetchSystem::AdjPrefetchSystem(unsigned int num_domains, vector<unsigned int> tid_to_domain,

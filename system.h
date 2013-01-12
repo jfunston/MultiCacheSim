@@ -11,6 +11,18 @@
 #include "misc.h"
 #include "cache.h"
 
+// In separate struct so ThreadedSim
+// doesn't need to repeat
+struct SystemStats {
+  unsigned long long hits = 0;
+  unsigned long long local_reads = 0;
+  unsigned long long remote_reads = 0;
+  unsigned long long othercache_reads = 0;
+  unsigned long long local_writes = 0;
+  unsigned long long remote_writes = 0;
+  unsigned long long compulsory = 0;
+};
+
 class System {
 protected:
    unsigned long long SET_MASK;
@@ -34,7 +46,7 @@ protected:
    unsigned long long virtToPhys(unsigned long long address);
    void evictTraffic(unsigned long long set, unsigned long long tag, 
                      unsigned int local, bool is_prefetch);
-   bool isLocal(unsigned long long address, unsigned int local);
+   //bool isLocal(unsigned long long address, unsigned int local);
    void setRemoteStates(unsigned long long set, unsigned long long tag, 
                         cacheState state, unsigned int local);
    void checkCompulsory(unsigned long long line);
@@ -47,8 +59,7 @@ public:
    virtual void memAccess(unsigned long long address, char rw, unsigned int tid, 
                      bool is_prefetch) = 0;
    virtual ~System();
-   unsigned long long hits, local_reads, remote_reads, othercache_reads,
-      local_writes, remote_writes, compulsory;
+   SystemStats stats;
 };
 
 // Modelling AMD's L1 Prefetcher

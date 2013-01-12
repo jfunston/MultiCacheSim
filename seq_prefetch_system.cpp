@@ -99,7 +99,7 @@ void SeqPrefetchSystem::memAccess(unsigned long long address, char rw, unsigned 
    if(hit) {
       cpus[local]->updateLRU(set, tag);
       if(!is_prefetch) {
-         hits++;
+         stats.hits++;
          prefetchHit(address, tid);
       }
       return;

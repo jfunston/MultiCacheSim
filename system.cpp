@@ -30,8 +30,9 @@ System::System(unsigned int num_domains, vector<unsigned int> tid_to_domain,
       }
    }
 
-   hits = local_reads = remote_reads = othercache_reads = local_writes 
-      = remote_writes = compulsory = 0;
+   stats.hits = stats.local_reads = stats.remote_reads = 
+      stats.othercache_reads = stats.local_writes = 
+      stats.remote_writes = stats.compulsory = 0;
 
    LINE_MASK = ((unsigned long long) line_size)-1;
    SET_SHIFT = log2(line_size);
@@ -93,11 +94,13 @@ void System::evictTraffic(unsigned long long set, unsigned long long tag,
 #endif
 
    if(domain == local && !is_prefetch)
-      local_writes++;
+      stats.local_writes++;
    else if(!is_prefetch)
-      remote_writes++;
+      stats.remote_writes++;
 }
 
+//FIXME: Make work with translation
+/*
 bool System::isLocal(unsigned long long address,
                      unsigned int local)
 {
@@ -115,6 +118,7 @@ bool System::isLocal(unsigned long long address,
       return false;
    }
 }
+*/
 
 void System::checkCompulsory(unsigned long long line)
 {
@@ -122,7 +126,7 @@ void System::checkCompulsory(unsigned long long line)
 
    it = seenLines.find(line);
    if(it == seenLines.end()) {
-      ++compulsory;
+      stats.compulsory++;
       seenLines.insert(line);
    }
 }
@@ -194,43 +198,43 @@ cacheState System::processMESI(cacheState remote_state, char rw,
    if(remote_state == INV && rw == 'R') {
       new_state = EXC;
       if(local_traffic && !is_prefetch) {
-         local_reads++;
+         stats.local_reads++;
       }
       else if(!is_prefetch) {
-         remote_reads++;
+         stats.remote_reads++;
       }
    }
    else if(remote_state == INV && rw == 'W') {
       new_state = MOD;
       if(local_traffic && !is_prefetch) {
-         local_reads++;
+         stats.local_reads++;
       }
       else if(!is_prefetch) {
-         remote_reads++;
+         stats.remote_reads++;
       }
    }
 #ifdef MULTI_CACHE
    else if(remote_state == SHA && rw == 'R') {
       new_state = SHA;
       if(local_traffic && !is_prefetch) {
-         local_reads++;
+         stats.local_reads++;
       }
       else if(!is_prefetch) {
-         remote_reads++;
+         stats.remote_reads++;
       }
    }
    else if(remote_state == SHA && rw == 'W') {
       new_state = MOD;
       setRemoteStates(set, tag, INV, local);
       if(!is_prefetch) {
-         othercache_reads++;
+         stats.othercache_reads++;
       }
    }
    else if((remote_state == MOD || remote_state == OWN) && rw == 'R') {
       new_state = SHA;
       cpus[remote]->changeState(set, tag, OWN);
       if(!is_prefetch) {
-         othercache_reads++;
+         stats.othercache_reads++;
       }
    }
    else if((remote_state == MOD || remote_state == OWN || remote_state == EXC) 
@@ -238,14 +242,14 @@ cacheState System::processMESI(cacheState remote_state, char rw,
       new_state = MOD;
       setRemoteStates(set, tag, INV, local);
       if(!is_prefetch) {
-         othercache_reads++;
+         stats.othercache_reads++;
       }
    }
    else if(remote_state == EXC && rw == 'R') {
       new_state = SHA;
       cpus[remote]->changeState(set, tag, SHA);
       if(!is_prefetch) {
-         othercache_reads++;
+         stats.othercache_reads++;
       }
    }
 #endif

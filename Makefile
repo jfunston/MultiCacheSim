@@ -3,16 +3,19 @@
 # simulations.
 
 CXX = g++
-DEBUG_FLAGS = -O2 -g -Wall -Wextra -DDEBUG -std=gnu++11
-RELEASE_FLAGS= -O3 -march=native -Wall -Wextra -std=gnu++11
+DEBUG_FLAGS = -O2 -g -Wall -Wextra -DDEBUG -std=gnu++11 -pthread
+RELEASE_FLAGS= -O3 -march=native -Wall -Wextra -std=gnu++11 -pthread
 CXXFLAGS=$(RELEASE_FLAGS)
 DEPS=$(wildcard *.h) Makefile
-OBJ=system.o cache.o seq_prefetch_system.o adj_prefetch_system.o
+OBJ=system.o cache.o seq_prefetch_system.o adj_prefetch_system.o threaded_sim.o
 
-all: cache tags check cscope.out 
+all: cache cache_threaded tags check cscope.out 
 
 cache: main.cpp $(DEPS) $(OBJ)
 	$(CXX) $(CXXFLAGS) -o cache main.cpp $(OBJ)
+
+cache_threaded: main_threaded.cpp $(DEPS) $(OBJ)
+	$(CXX) $(CXXFLAGS) -o cache_threaded main_threaded.cpp $(OBJ)
 
 %.o: %.cpp $(DEPS)
 	$(CXX) $(CXXFLAGS) -o $@ -c $< 
