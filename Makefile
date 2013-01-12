@@ -7,7 +7,7 @@ DEBUG_FLAGS = -O2 -g -Wall -Wextra -DDEBUG -std=gnu++11
 RELEASE_FLAGS= -O3 -march=native -Wall -Wextra -std=gnu++11
 CXXFLAGS=$(RELEASE_FLAGS)
 DEPS=$(wildcard *.h) Makefile
-OBJ=system.o cache.o seq_prefetch_system.o
+OBJ=system.o cache.o seq_prefetch_system.o adj_prefetch_system.o
 
 all: cache tags check cscope.out 
 
