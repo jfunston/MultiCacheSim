@@ -56,14 +56,14 @@ System::~System()
 
 // Keeps track of which NUMA domain each memory page is in,
 // using a first-touch policy
-void System::updatePageList(unsigned long long address, unsigned int curDomain)
+void System::updatePageToDomain(unsigned long long address, unsigned int curDomain)
 {
-   map<unsigned long long, unsigned long long>::iterator it;
+   map<unsigned long long, unsigned int>::iterator it;
    unsigned long long page = address & PAGE_MASK;
 
-   it = pageList.find(page);
-   if(it == pageList.end()) {
-      pageList[page] = curDomain;
+   it = pageToDomain.find(page);
+   if(it == pageToDomain.end()) {
+      pageToDomain[page] = curDomain;
    }
 }
 
@@ -88,7 +88,7 @@ void System::evictTraffic(unsigned long long set, unsigned long long tag,
    it = pageList.find(page);
    assert(it != pageList.end());
 #endif
-   unsigned int domain = pageList[page];
+   unsigned int domain = pageToDomain[page];
 #else
    unsigned int domain = local;
 #endif
@@ -99,8 +99,6 @@ void System::evictTraffic(unsigned long long set, unsigned long long tag,
       stats.remote_writes++;
 }
 
-//FIXME: Make work with translation
-/*
 bool System::isLocal(unsigned long long address,
                      unsigned int local)
 {
@@ -110,15 +108,10 @@ bool System::isLocal(unsigned long long address,
    it = pageList.find(page);
    assert(it != pageList.end());
 #endif
-   unsigned int domain = pageList[page];
-   if(domain == local) {
-      return true;
-   }
-   else {
-      return false;
-   }
+   unsigned int domain = pageToDomain[page];
+
+   return (domain == local);
 }
-*/
 
 void System::checkCompulsory(unsigned long long line)
 {
@@ -174,15 +167,15 @@ unsigned long long System::virtToPhys(unsigned long long address)
    unsigned long long phys_page;
    unsigned long long phys_addr = address & (~PAGE_MASK);
 
-   it = pageList.find(virt_page);
-   if(it != pageList.end()) {
+   it = virtToPhysMap.find(virt_page);
+   if(it != virtToPhysMap.end()) {
       phys_page = it->second;
       phys_addr |= phys_page;
    }
    else {
       phys_page = nextPage << PAGE_SHIFT;
       phys_addr |= phys_page;
-      pageList.insert(make_pair(virt_page, phys_page));
+      virtToPhysMap.insert(make_pair(virt_page, phys_page));
       //nextPage += rand() % 200 + 5 ;
       ++nextPage;
    }

@@ -10,21 +10,29 @@
 #include <map>
 #include "misc.h"
 #include "cache.h"
+#include "prefetch.h"
 
 // In separate struct so ThreadedSim
 // doesn't need to repeat
 struct SystemStats {
-  unsigned long long hits = 0;
-  unsigned long long local_reads = 0;
-  unsigned long long remote_reads = 0;
-  unsigned long long othercache_reads = 0;
-  unsigned long long local_writes = 0;
-  unsigned long long remote_writes = 0;
-  unsigned long long compulsory = 0;
+   unsigned long long hits;
+   unsigned long long local_reads;
+   unsigned long long remote_reads;
+   unsigned long long othercache_reads;
+   unsigned long long local_writes;
+   unsigned long long remote_writes;
+   unsigned long long compulsory;
+   SystemStats()
+   {
+      hits = local_reads = remote_reads = othercache_reads = 
+         local_writes = remote_writes = compulsory = 0;
+   }
 };
 
 class System {
 protected:
+   friend class SeqPrefetch;
+   friend class AdjPrefetch;
    unsigned long long SET_MASK;
    unsigned long long TAG_MASK;
    unsigned long long LINE_MASK;
@@ -33,20 +41,22 @@ protected:
    vector<unsigned int> tid_to_domain;
 
    set<unsigned long long> seenLines; // Used for compulsory misses
-   map<unsigned long long, unsigned long long> pageList;
+   // Stores virtual to physical page mappings
+   map<unsigned long long, unsigned long long> virtToPhysMap;
+   // Stores domain location of pages
+   map<unsigned long long, unsigned int> pageToDomain;
+   // Used for determining new virtual to physical mappings
    unsigned long long nextPage;
    bool countCompulsory;
    bool doAddrTrans;
 
    int checkRemoteStates(unsigned long long set, unsigned long long tag, 
                         cacheState& state, unsigned int local);
-   //TODO: Currently updatePageList and virtToPhys are mutually exclusive
-   //       because both use pageList
-   void updatePageList(unsigned long long address, unsigned int curDomain);
+   void updatePageToDomain(unsigned long long address, unsigned int curDomain);
    unsigned long long virtToPhys(unsigned long long address);
    void evictTraffic(unsigned long long set, unsigned long long tag, 
                      unsigned int local, bool is_prefetch);
-   //bool isLocal(unsigned long long address, unsigned int local);
+   bool isLocal(unsigned long long address, unsigned int local);
    void setRemoteStates(unsigned long long set, unsigned long long tag, 
                         cacheState state, unsigned int local);
    void checkCompulsory(unsigned long long line);
@@ -64,12 +74,7 @@ public:
 
 // Modelling AMD's L1 Prefetcher
 class SeqPrefetchSystem : public System {
-   unsigned long long lastMiss;
-   unsigned long long lastPrefetch;
-   static const unsigned int prefetchNum = 3;
-
-   int prefetchMiss(unsigned long long address, unsigned int tid);
-   int prefetchHit(unsigned long long address, unsigned int tid);
+   SeqPrefetch prefetcher;
 public:
    SeqPrefetchSystem(unsigned int num_domains, vector<unsigned int> tid_to_domain,
             unsigned int line_size, unsigned int num_lines, unsigned int assoc,
@@ -83,6 +88,7 @@ public:
 // or address transalation (though it would be
 // easy to add)
 class AdjPrefetchSystem : public System {
+   AdjPrefetch prefetcher;
 public:
    AdjPrefetchSystem(unsigned int num_domains, vector<unsigned int> tid_to_domain,
             unsigned int line_size, unsigned int num_lines, unsigned int assoc);

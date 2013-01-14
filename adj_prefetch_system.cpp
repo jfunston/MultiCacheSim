@@ -43,8 +43,7 @@ void AdjPrefetchSystem::memAccess(unsigned long long address, char rw, unsigned
       cpus[local]->updateLRU(set, tag);
       if(!is_prefetch) {
          stats.hits++;
-         //Prefetch next line
-         memAccess(address + (1 << SET_SHIFT), 'R', tid, true);
+         prefetcher.prefetchHit(address, tid, this);
       }
       return;
    }
@@ -69,9 +68,8 @@ void AdjPrefetchSystem::memAccess(unsigned long long address, char rw, unsigned
 
    new_state = processMESI(remote_state, rw, is_prefetch, local_traffic);
    cpus[local]->insertLine(set, tag, new_state);
-   //Prefetch next line
    if(!is_prefetch) {
-      memAccess(address + (1 << SET_SHIFT), 'R', tid, true);
+      prefetcher.prefetchMiss(address, tid, this);
    }
 }
 
