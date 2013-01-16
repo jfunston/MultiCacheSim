@@ -41,14 +41,14 @@ protected:
    unsigned long long TAG_MASK;
    unsigned long long LINE_MASK;
    unsigned int SET_SHIFT;
-   vector<unsigned int> tid_to_domain;
+   std::vector<unsigned int> tid_to_domain;
    //The cutoff associativity for using the deque cache implementation
    static const unsigned int assocCutoff = 64;
 
    // Used for compulsory misses
-   set<unsigned long long> seenLines;
+   std::set<unsigned long long> seenLines;
    // Stores virtual to physical page mappings
-   map<unsigned long long, unsigned long long> virtToPhysMap;
+   std::map<unsigned long long, unsigned long long> virtToPhysMap;
    // Used for determining new virtual to physical mappings
    unsigned long long nextPage;
    bool countCompulsory;
@@ -57,7 +57,7 @@ protected:
    unsigned long long virtToPhys(unsigned long long address);
    void checkCompulsory(unsigned long long line);
 public:
-   System(unsigned int num_domains, vector<unsigned int> tid_to_domain,
+   System(std::vector<unsigned int> tid_to_domain,
             unsigned int line_size, unsigned int num_lines, unsigned int assoc,
             Prefetch* prefetcher, bool count_compulsory=false, 
             bool do_addr_trans=false);
@@ -69,8 +69,8 @@ public:
 //For a system containing multiple caches
 class MultiCacheSystem : public System {
    // Stores domain location of pages
-   map<unsigned long long, unsigned int> pageToDomain;
-   vector<Cache*> caches;
+   std::map<unsigned long long, unsigned int> pageToDomain;
+   std::vector<Cache*> caches;
 
    int checkRemoteStates(unsigned long long set, unsigned long long tag, 
                         cacheState& state, unsigned int local);
@@ -84,11 +84,10 @@ class MultiCacheSystem : public System {
                   cacheState remote_state, char rw, bool is_prefetch, 
                   bool local_traffic, unsigned int local, unsigned int remote);
 public:
-   MultiCacheSystem(unsigned int num_domains, 
-            vector<unsigned int> tid_to_domain,
+   MultiCacheSystem(std::vector<unsigned int> tid_to_domain,
             unsigned int line_size, unsigned int num_lines, unsigned int assoc,
             Prefetch* prefetcher, bool count_compulsory=false, 
-            bool do_addr_trans=false);
+            bool do_addr_trans=false, unsigned int num_domains=1);
    ~MultiCacheSystem();
    void memAccess(unsigned long long address, char rw, unsigned int tid, 
                      bool is_prefetch);
@@ -100,8 +99,7 @@ class SingleCacheSystem : public System {
    Cache* cache;
 
 public:
-   SingleCacheSystem(unsigned int num_domains, 
-            vector<unsigned int> tid_to_domain,
+   SingleCacheSystem(std::vector<unsigned int> tid_to_domain,
             unsigned int line_size, unsigned int num_lines, unsigned int assoc,
             Prefetch* prefetcher, bool count_compulsory=false, 
             bool do_addr_trans=false);

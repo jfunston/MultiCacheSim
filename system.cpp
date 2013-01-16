@@ -9,9 +9,7 @@
 #include "cache.h"
 #include "system.h"
 
-using namespace std;
-
-System::System(unsigned int num_domains, vector<unsigned int> tid_to_domain,
+System::System(std::vector<unsigned int> tid_to_domain,
             unsigned int line_size, unsigned int num_lines, unsigned int assoc,
             Prefetch* prefetcher, bool count_compulsory /*=false*/, 
             bool do_addr_trans /*=false*/)
@@ -48,7 +46,7 @@ void System::checkCompulsory(unsigned long long line)
 
 unsigned long long System::virtToPhys(unsigned long long address)
 {
-   map<unsigned long long, unsigned long long>::iterator it;
+   std::map<unsigned long long, unsigned long long>::iterator it;
    unsigned long long virt_page = address & PAGE_MASK;
    unsigned long long phys_page;
    unsigned long long phys_addr = address & (~PAGE_MASK);
@@ -61,7 +59,7 @@ unsigned long long System::virtToPhys(unsigned long long address)
    else {
       phys_page = nextPage << PAGE_SHIFT;
       phys_addr |= phys_page;
-      virtToPhysMap.insert(make_pair(virt_page, phys_page));
+      virtToPhysMap.insert(std::make_pair(virt_page, phys_page));
       //nextPage += rand() % 200 + 5 ;
       ++nextPage;
    }
@@ -286,7 +284,7 @@ void MultiCacheSystem::memAccess(unsigned long long address, char rw,
 void MultiCacheSystem::updatePageToDomain(unsigned long long address, 
                                           unsigned int curDomain)
 {
-   map<unsigned long long, unsigned int>::iterator it;
+   std::map<unsigned long long, unsigned int>::iterator it;
    unsigned long long page = address & PAGE_MASK;
 
    it = pageToDomain.find(page);
@@ -295,12 +293,12 @@ void MultiCacheSystem::updatePageToDomain(unsigned long long address,
    }
 }
 
-MultiCacheSystem::MultiCacheSystem(unsigned int num_domains, 
-            vector<unsigned int> tid_to_domain, unsigned int line_size, 
-            unsigned int num_lines, unsigned int assoc, Prefetch* prefetcher,
-            bool count_compulsory /*=false*/, bool do_addr_trans /*=false*/) : 
-            System(num_domains, tid_to_domain, line_size, num_lines, assoc,
-               prefetcher, count_compulsory, do_addr_trans)
+MultiCacheSystem::MultiCacheSystem(std::vector<unsigned int> tid_to_domain, 
+            unsigned int line_size, unsigned int num_lines, unsigned int assoc,
+            Prefetch* prefetcher, bool count_compulsory /*=false*/, 
+            bool do_addr_trans /*=false*/, unsigned int num_domains) : 
+            System(tid_to_domain, line_size, num_lines, assoc, prefetcher, 
+                     count_compulsory, do_addr_trans)
 {
    if(assoc > assocCutoff) {
       for(unsigned int i=0; i<num_domains; i++) {
@@ -384,11 +382,11 @@ void SingleCacheSystem::memAccess(unsigned long long address, char rw, unsigned
    }
 }
 
-SingleCacheSystem::SingleCacheSystem(unsigned int num_domains, 
-            vector<unsigned int> tid_to_domain, unsigned int line_size, 
-            unsigned int num_lines, unsigned int assoc, Prefetch* prefetcher,
-            bool count_compulsory /*=false*/, bool do_addr_trans /*=false*/) : 
-            System(num_domains, tid_to_domain, line_size, num_lines, assoc,
+SingleCacheSystem::SingleCacheSystem(std::vector<unsigned int> tid_to_domain, 
+            unsigned int line_size, unsigned int num_lines, unsigned int assoc,
+            Prefetch* prefetcher, bool count_compulsory /*=false*/, 
+            bool do_addr_trans /*=false*/) : 
+            System(tid_to_domain, line_size, num_lines, assoc,
                prefetcher, count_compulsory, do_addr_trans)
 {
    if(assoc > assocCutoff) {

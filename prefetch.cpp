@@ -6,20 +6,20 @@
 #include "system.h"
 
 int Prefetch::prefetchMiss(unsigned long long address __attribute__((unused)), 
-      unsigned int tid __attribute__((unused)),
-      System* sys __attribute__((unused)))
+                              unsigned int tid __attribute__((unused)),
+                              System* sys __attribute__((unused)))
 {
    return 0;
 }
 int Prefetch::prefetchHit(unsigned long long address __attribute__((unused)), 
-      unsigned int tid __attribute__((unused)),
-      System* sys __attribute__((unused)))
+                           unsigned int tid __attribute__((unused)),
+                           System* sys __attribute__((unused)))
 {
    return 0;
 }
 
 int AdjPrefetch::prefetchMiss(unsigned long long address, unsigned int tid,
-      System* sys)
+                                 System* sys)
 {
    sys->memAccess(address + (1 << sys->SET_SHIFT), 'R', tid, true);
    return 1;
@@ -27,7 +27,7 @@ int AdjPrefetch::prefetchMiss(unsigned long long address, unsigned int tid,
 
 // Called to check for prefetches in the case of a cache miss.
 int SeqPrefetch::prefetchMiss(unsigned long long address, unsigned int tid,
-      System* sys)
+                                 System* sys)
 {
    unsigned long long set = (address & sys->SET_MASK) >> sys->SET_SHIFT;
    unsigned long long tag = address & sys->TAG_MASK;
@@ -41,7 +41,8 @@ int SeqPrefetch::prefetchMiss(unsigned long long address, unsigned int tid,
          // Call memAccess to resolve the prefetch. The address is 
          // incremented in the set portion of its bits (least
          // significant bits not in the cache line offset portion)
-         sys->memAccess(address + ((1 << sys->SET_SHIFT) * (i+1)), 'R', tid, true);
+         sys->memAccess(address + ((1 << sys->SET_SHIFT) * (i+1)), 
+                           'R', tid, true);
       }
       
       lastPrefetch = address + (1 << sys->SET_SHIFT);
@@ -64,7 +65,8 @@ int SeqPrefetch::prefetchHit(unsigned long long address, unsigned int tid,
 {
    unsigned long long set = (address & sys->SET_MASK) >> sys->SET_SHIFT;
    unsigned long long tag = address & sys->TAG_MASK;
-   unsigned long long lastSet = (lastPrefetch & sys->SET_MASK) >> sys->SET_SHIFT;
+   unsigned long long lastSet = (lastPrefetch & sys->SET_MASK) 
+                                    >> sys->SET_SHIFT;
    unsigned long long lastTag = lastPrefetch & sys->TAG_MASK;
 
    if(tag == lastTag && lastSet == set) {

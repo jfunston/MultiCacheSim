@@ -17,17 +17,18 @@ int main()
    // tid_map is used to inform the simulator how
    // thread ids map to NUMA/cache domains. Using
    // the tid as an index gives the NUMA domain.
-   unsigned int arr_map[] = {0};
+   unsigned int arr_map[] = {0, 1};
    vector<unsigned int> tid_map(arr_map, arr_map + 
          sizeof(arr_map) / sizeof(unsigned int));
    SeqPrefetch prefetch;
-   // The constructor parameters are: Number of caches/domains,
+   // The constructor parameters are:
    // the tid_map, the cache line size in bytes,
    // number of cache lines, the associativity,
    // whether to count compulsory misses,
-   // and whether to do virtual to physical translation
+   // whether to do virtual to physical translation,
+   // and number of caches/domains
    // WARNING: counting compulsory misses doubles execution time
-   SingleCacheSystem sys(1, tid_map, 64, 1024, 64, &prefetch);
+   MultiCacheSystem sys(tid_map, 64, 1024, 64, &prefetch, false, false, 2);
    char rw;
    unsigned long long address;
    unsigned long long lines = 0;

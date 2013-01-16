@@ -10,8 +10,6 @@
 #include <iostream>
 #include <utility>
 
-using namespace std;
-
 SetCache::SetCache(unsigned int num_lines, unsigned int assoc)
 {
    assert(num_lines % assoc == 0);
@@ -34,7 +32,8 @@ SetCache::SetCache(unsigned int num_lines, unsigned int assoc)
 
 /* FIXME invalid vs not found */
 // Given the set and tag, return the cache lines state
-cacheState SetCache::findTag(unsigned long long set, unsigned long long tag) const
+cacheState SetCache::findTag(unsigned long long set, 
+                              unsigned long long tag) const
 {
    cacheLine temp;
    temp.tag = tag;
@@ -49,7 +48,8 @@ cacheState SetCache::findTag(unsigned long long set, unsigned long long tag) con
 
 /* FIXME invalid vs not found */
 // Changes the cache line specificed by "set" and "tag" to "state"
-void SetCache::changeState(unsigned long long set, unsigned long long tag, cacheState state)
+void SetCache::changeState(unsigned long long set, unsigned long long tag, 
+                              cacheState state)
 {
    cacheLine temp;
    temp.tag = tag;
@@ -66,9 +66,9 @@ void SetCache::changeState(unsigned long long set, unsigned long long tag, cache
 // list and map. The front of the list is considered most recently used.
 void SetCache::updateLRU(unsigned long long set, unsigned long long tag)
 {
-   unordered_map<unsigned long long, 
-      list<unsigned long long>::iterator>::iterator map_it;
-   list<unsigned long long>::iterator it;
+   std::unordered_map<unsigned long long, 
+      std::list<unsigned long long>::iterator>::iterator map_it;
+   std::list<unsigned long long>::iterator it;
    unsigned long long temp;
 
    map_it = lruMaps[set].find(tag);
@@ -97,7 +97,8 @@ void SetCache::updateLRU(unsigned long long set, unsigned long long tag)
 // Called if a new cache line is to be inserted. Checks if
 // the least recently used line needs to be written back to
 // main memory.
-bool SetCache::checkWriteback(unsigned long long set, unsigned long long& tag) const
+bool SetCache::checkWriteback(unsigned long long set, 
+                                 unsigned long long& tag) const
 {
    cacheLine evict, temp;
    tag = lruLists[set].back();
@@ -110,7 +111,8 @@ bool SetCache::checkWriteback(unsigned long long set, unsigned long long& tag) c
 // FIXME: invalid vs not found
 // Insert a new cache line by popping the least recently used line
 // and pushing the new line to the back (most recently used)
-void SetCache::insertLine(unsigned long long set, unsigned long long tag, cacheState state)
+void SetCache::insertLine(unsigned long long set, unsigned long long tag, 
+                           cacheState state)
 {
    unsigned long long to_evict = lruLists[set].back();
    cacheLine newLine, temp;
@@ -140,9 +142,10 @@ DequeCache::DequeCache(unsigned int num_lines, unsigned int assoc)
 
 // Given the set and tag, return the cache lines state
 // INVALID and "not found" are equivalent
-cacheState DequeCache::findTag(unsigned long long set, unsigned long long tag) const
+cacheState DequeCache::findTag(unsigned long long set, 
+                                 unsigned long long tag) const
 {
-   deque<cacheLine>::const_iterator it = sets[set].begin();
+   std::deque<cacheLine>::const_iterator it = sets[set].begin();
 
    for(; it != sets[set].end(); ++it)
    {
@@ -157,9 +160,10 @@ cacheState DequeCache::findTag(unsigned long long set, unsigned long long tag) c
 }
 
 // Changes the cache line specificed by "set" and "tag" to "state"
-void DequeCache::changeState(unsigned long long set, unsigned long long tag, cacheState state)
+void DequeCache::changeState(unsigned long long set, unsigned long long tag, 
+                              cacheState state)
 {
-   deque<cacheLine>::iterator it = sets[set].begin();
+   std::deque<cacheLine>::iterator it = sets[set].begin();
 
    for(; it != sets[set].end(); ++it)
    {
@@ -175,7 +179,7 @@ void DequeCache::changeState(unsigned long long set, unsigned long long tag, cac
 // recently used.
 void DequeCache::updateLRU(unsigned long long set, unsigned long long tag)
 {
-   deque<cacheLine>::iterator it = sets[set].begin();
+   std::deque<cacheLine>::iterator it = sets[set].begin();
    cacheLine temp;
 
 #ifdef DEBUG
@@ -201,7 +205,8 @@ void DequeCache::updateLRU(unsigned long long set, unsigned long long tag)
 // Called if a new cache line is to be inserted. Checks if
 // the least recently used line needs to be written back to
 // main memory.
-bool DequeCache::checkWriteback(unsigned long long set, unsigned long long& tag) const
+bool DequeCache::checkWriteback(unsigned long long set, 
+                                 unsigned long long& tag) const
 {
    cacheLine evict = sets[set].front();
    tag = evict.tag;
@@ -211,7 +216,8 @@ bool DequeCache::checkWriteback(unsigned long long set, unsigned long long& tag)
 
 // Insert a new cache line by popping the least recently used line
 // and pushing the new line to the back (most recently used)
-void DequeCache::insertLine(unsigned long long set, unsigned long long tag, cacheState state)
+void DequeCache::insertLine(unsigned long long set, unsigned long long tag, 
+                              cacheState state)
 {
    cacheLine newLine;
    newLine.tag = tag;
