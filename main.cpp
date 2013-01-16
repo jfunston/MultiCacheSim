@@ -20,13 +20,14 @@ int main()
    unsigned int arr_map[] = {0};
    vector<unsigned int> tid_map(arr_map, arr_map + 
          sizeof(arr_map) / sizeof(unsigned int));
+   SeqPrefetch prefetch;
    // The constructor parameters are: Number of caches/domains,
    // the tid_map, the cache line size in bytes,
    // number of cache lines, the associativity,
    // whether to count compulsory misses,
    // and whether to do virtual to physical translation
    // WARNING: counting compulsory misses doubles execution time
-   AdjPrefetchSystem sys(1, tid_map, 64, 1024, 64);
+   SingleCacheSystem sys(1, tid_map, 64, 1024, 64, &prefetch);
    char rw;
    unsigned long long address;
    unsigned long long lines = 0;

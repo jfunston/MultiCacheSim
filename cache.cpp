@@ -103,9 +103,8 @@ bool SetCache::checkWriteback(unsigned long long set, unsigned long long& tag) c
    tag = lruLists[set].back();
    temp.tag = tag;
    evict = *sets[set].find(temp);
-   if(evict.state == MOD || evict.state == OWN)
-      return true;
-   return false;
+
+   return (evict.state == MOD || evict.state == OWN);
 }
 
 // FIXME: invalid vs not found
@@ -204,17 +203,10 @@ void DequeCache::updateLRU(unsigned long long set, unsigned long long tag)
 // main memory.
 bool DequeCache::checkWriteback(unsigned long long set, unsigned long long& tag) const
 {
-   bool writeback;
    cacheLine evict = sets[set].front();
    tag = evict.tag;
-   if(evict.state == MOD || evict.state == OWN) {
-      writeback = true;
-   }
-   else {
-      writeback = false;
-   }
 
-   return writeback;
+   return (evict.state == MOD || evict.state == OWN);
 }
 
 // Insert a new cache line by popping the least recently used line
