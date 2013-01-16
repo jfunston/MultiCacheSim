@@ -5,6 +5,19 @@
 #include "prefetch.h"
 #include "system.h"
 
+int Prefetch::prefetchMiss(unsigned long long address __attribute__((unused)), 
+      unsigned int tid __attribute__((unused)),
+      System* sys __attribute__((unused)))
+{
+   return 0;
+}
+int Prefetch::prefetchHit(unsigned long long address __attribute__((unused)), 
+      unsigned int tid __attribute__((unused)),
+      System* sys __attribute__((unused)))
+{
+   return 0;
+}
+
 int AdjPrefetch::prefetchMiss(unsigned long long address, unsigned int tid,
       System* sys)
 {

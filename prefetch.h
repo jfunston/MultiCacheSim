@@ -12,9 +12,9 @@ class System;
 class Prefetch {
 public:
    virtual int prefetchMiss(unsigned long long address, unsigned int tid,
-      System* sys) = 0;
+      System* sys);
    virtual int prefetchHit(unsigned long long address, unsigned int tid,
-      System* sys) = 0;
+      System* sys);
 };
 
 // Modeling AMD's L1 prefetcher, a sequential
