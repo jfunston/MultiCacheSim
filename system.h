@@ -43,10 +43,11 @@ struct SystemStats {
    unsigned long long local_writes;
    unsigned long long remote_writes;
    unsigned long long compulsory;
+   unsigned long long prefetched;
    SystemStats()
    {
       hits = local_reads = remote_reads = othercache_reads = 
-         local_writes = remote_writes = compulsory = 0;
+         local_writes = remote_writes = compulsory = prefetched = 0;
    }
 };
 

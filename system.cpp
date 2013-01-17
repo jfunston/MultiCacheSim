@@ -270,7 +270,7 @@ void MultiCacheSystem::memAccess(unsigned long long address, char rw,
       caches[local]->updateLRU(set, tag);
       if(!is_prefetch) {
          stats.hits++;
-         prefetcher->prefetchHit(address, tid, this);
+         stats.prefetched += prefetcher->prefetchHit(address, tid, this);
       }
       return;
    }
@@ -294,7 +294,7 @@ void MultiCacheSystem::memAccess(unsigned long long address, char rw,
                               local_traffic, local, remote);
    caches[local]->insertLine(set, tag, new_state);
    if(!is_prefetch) {
-      prefetcher->prefetchMiss(address, tid, this);
+      stats.prefetched += prefetcher->prefetchMiss(address, tid, this);
    }
 }
 
@@ -371,7 +371,7 @@ void SingleCacheSystem::memAccess(unsigned long long address, char rw, unsigned
       cache->updateLRU(set, tag);
       if(!is_prefetch) {
          stats.hits++;
-         prefetcher->prefetchHit(address, tid, this);
+         stats.prefetched += prefetcher->prefetchHit(address, tid, this);
       }
       return;
    }
@@ -397,7 +397,7 @@ void SingleCacheSystem::memAccess(unsigned long long address, char rw, unsigned
 
    cache->insertLine(set, tag, new_state);
    if(!is_prefetch) {
-      prefetcher->prefetchMiss(address, tid, this);
+      stats.prefetched += prefetcher->prefetchMiss(address, tid, this);
    }
 }
 

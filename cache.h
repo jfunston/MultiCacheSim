@@ -34,6 +34,7 @@ freely, subject to the following restrictions:
 
 class Cache{
 public:
+   virtual ~Cache(){}
    virtual cacheState findTag(unsigned long long set, 
                                  unsigned long long tag) const = 0;
    virtual void changeState(unsigned long long set, 
