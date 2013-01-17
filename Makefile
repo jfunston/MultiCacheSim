@@ -5,7 +5,7 @@ CXXFLAGS=$(RELEASE_FLAGS)
 DEPS=$(wildcard *.h) Makefile
 OBJ=system.o cache.o prefetch.o
 
-all: cache cache_threaded tags check cscope.out 
+all: cache tags check cscope.out 
 
 cache: main.cpp $(DEPS) $(OBJ)
 	$(CXX) $(CXXFLAGS) -o cache main.cpp $(OBJ)
@@ -21,7 +21,7 @@ cscope.out: *.cpp *.h
 
 .PHONY: backup
 backup:
-	git push -u linode master
+	git push -u origin master
 
 .PHONY: check
 check:

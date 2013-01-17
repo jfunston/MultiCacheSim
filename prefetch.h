@@ -27,6 +27,8 @@ class SeqPrefetch : public Prefetch {
 public:
    int prefetchMiss(unsigned long long address, unsigned int tid, System* sys);
    int prefetchHit(unsigned long long address, unsigned int tid, System* sys);
+   SeqPrefetch()
+   { lastMiss = lastPrefetch = 0;}
 };
 
 // A simple adjacent line prefetcher
