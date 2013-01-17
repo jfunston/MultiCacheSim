@@ -1,17 +1,20 @@
 Author: Justin Funston
-Date: March 2012
+Modified: January 2013
 Email: jfunston@sfu.ca
-
-Version 1.1
-
-CHANGELOG
----------
-1.1: Fixed bug related to write misses
-1.0: Initial version
 
 This document describes the usage of my cache simulator program,
 designed to be used with memory access traces obtained with Pin
 (www.pintool.org)
+
+CHANGELOG
+---------
+1.2: Restructuring for easier modification. Compulsory miss
+      counting. Adjacent line prefetching. Virtual to physical
+      address translation. A SingleCacheSystem class with
+      optimizations for better performance. Various speed
+      optimizations and bug fixes.
+1.1: Fixed bug related to write misses
+1.0: Initial version
 
 DESCRIPTION
 -----------
@@ -34,6 +37,10 @@ program (main.cpp). If you are modifying the simulator, use the
 DEBUG flags in the Makefile which enables run-time error checking
 in the simulator.
 
+Compilation requires a compiler supporting the unorderd_map class
+from c++11. If one isn't available the instances of unordered_map
+can be changed to map in cache.h and cache.cpp.
+
 USAGE
 -----
 
@@ -41,19 +48,22 @@ See main.cpp for an example of using the simulator. The basic
 steps are:
 1. Create a vector mapping thread IDs to NUMA domains,
       where the index into the vector represents the TID
-2. Create a System object using the constructor, which takes
-      the number of caches/NUMA domains, the vector from step 1,
-      the size of a cache line in bytes, the number of cache lines,
-      and the associativity
-3. Call System::memAccess for each memory access, in order,
+2. Create a SeqPrefetch (sequential prefetching similar to AMD L1
+      prefetcher), AdjPrefetch (adjacent line prefetcher), or a
+      Prefetch (placeholder that doesn't prefetch) object.
+3. Create a SingleCacheSystem or MultiCacheSystem object using the 
+      constructor, which takes:
+      the vector from step 1, the size of a cache line in bytes, 
+      the number of cache lines, the associativity, 
+      whether to count compulsory misses, whether to translate addresses,
+      and the number of caches/NUMA domains (for the MultiCacheSystem).
+4. Call System::memAccess for each memory access, in order,
       passing the address, read or write (as an 'R' or 'W'
       character), and the TID of the accessing thread.
-4. Read the statistics from the System object
+5. Read the statistics from the System object
 
-There are two configuration options that must be changed in cache.h
-if desired: PAGE_MASK which determines the page size (default is
-4 KB), and prefetchNum which indicates how many lines to prefetch
-for a prefetch event (default 3).
+The assumed page size can be changed in misc.h, and the prefetch width
+for the SeqPrefetch class can be changed in prefetch.h (default 3 lines).
 
 MULTI-PROCESS WORKLOADS
 -----------------------
@@ -77,3 +87,28 @@ If the workload uses a shared memory region, find the range for the
 region. If an address lies within the range, do not modify the
 address as described above, thus making all addresses in the shared
 range actually shared among processes.
+
+LICENSE
+-------
+
+Copyright (c) 2013 Justin Funston
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+   1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+
+   2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+
+   3. This notice may not be removed or altered from any source
+   distribution.
+
