@@ -2,40 +2,31 @@ Author: Justin Funston
 Modified: January 2013
 Email: jfunston@sfu.ca
 
-This document describes the usage of my cache simulator program,
-designed to be used with memory access traces obtained with Pin
-(www.pintool.org)
+MultiCacheSim is a cache simulator designed to be used with 
+memory access traces obtained with Pin (www.pintool.org). It
+has been optimized for performance and can process large inputs
+(100s of GB) in a few hours depending on configuration.
 
-CHANGELOG
----------
-1.2: Restructuring for easier modification. Compulsory miss
-      counting. Adjacent line prefetching. Virtual to physical
-      address translation. A SingleCacheSystem class with
-      optimizations for better performance. Various speed
-      optimizations and bug fixes.
-1.1: Fixed bug related to write misses
-1.0: Initial version
+FEATURES
+--------
 
-DESCRIPTION
------------
-
-The simulator closely models an Opteron cache. It uses the MOESI
-cache coherency protocol, an LRU replacement policy, and a 
-prefetcher similar to the Opteron L1 prefetcher. The first-touch
-policy is used to determine which NUMA domain a page is placed in.
-
-The primary differences from a real Opteron cache are: the
-replacement policy is somewhat less sophisticated, only one level
-of cache is simulated, and the prefetcher uses a fixed prefetching
-distance.
+* Configurable size, associativity, and line size
+* MOESI protocol simulation for multiple caches
+* Tracking of miss and data source statistics
+* NUMA statistics are maintained based off of a fist-touch policy
+   and configurable page size
+* Virtual-to-physical address translation
+* Prefetcher "plugins"
+   - Adjacent line prefetcher
+   - Sequential prefetcher (similar to AMD's L1 prefetcher)
+* LRU replacement policy
 
 COMPILATION
 -----------
 
 Simply run "make" to compile the simulator with the example driver
 program (main.cpp). If you are modifying the simulator, use the
-DEBUG flags in the Makefile which enables run-time error checking
-in the simulator.
+DEBUG flags in the Makefile which enables run-time error checking.
 
 Compilation requires a compiler supporting the unorderd_map class
 from c++11. If one isn't available the instances of unordered_map
