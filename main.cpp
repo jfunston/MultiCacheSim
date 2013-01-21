@@ -51,7 +51,7 @@ int main()
    unsigned long long address;
    unsigned long long lines = 0;
    ifstream infile;
-   infile.open("/run/media/jfunston/Seagate Expansion Drive/pinatrace.out", ifstream::in | ifstream::binary);
+   infile.open("pinatrace.out", ifstream::in | ifstream::binary);
    assert(infile.is_open());
 
    while(!infile.eof())
@@ -60,13 +60,11 @@ int main()
       assert(rw == 'R' || rw == 'W');
 
       infile.read((char*)&address, sizeof(unsigned long long));
-      if(address != 0)
+      if(address != 0) {
          sys.memAccess(address, rw, 0, false);
+      }
 
       ++lines;
-      if(lines >= 500000000) {
-         break;
-      }
    }
 
    cout << "Accesses: " << lines << endl;
@@ -74,10 +72,10 @@ int main()
    cout << "Misses: " << lines - sys.stats.hits << endl;
    cout << "Local reads: " << sys.stats.local_reads << endl;
    cout << "Local writes: " << sys.stats.local_writes << endl;
+   cout << "Remote reads: " << sys.remote_reads << endl;
+   cout << "Remote writes: " << sys.remote_writes << endl;
+   cout << "Other-cache reads: " << sys.othercache_reads << endl;
    //cout << "Compulsory Misses: " << sys.stats.compulsory << endl;
-   //cout << "Remote reads: " << sys.remote_reads << endl;
-   //cout << "Remote writes: " << sys.remote_writes << endl;
-   //cout << "Other-cache reads: " << sys.othercache_reads << endl;
    
    infile.close();
 
