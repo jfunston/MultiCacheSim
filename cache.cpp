@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2013 Justin Funston
+Copyright (c) 2015 Justin Funston
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -21,12 +21,12 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-#include "misc.h"
-#include "cache.h"
 #include <cassert>
 #include <cmath>
 #include <iostream>
 #include <utility>
+#include "misc.h"
+#include "cache.h"
 
 SetCache::SetCache(unsigned int num_lines, unsigned int assoc)
 {
@@ -50,8 +50,8 @@ SetCache::SetCache(unsigned int num_lines, unsigned int assoc)
 
 /* FIXME invalid vs not found */
 // Given the set and tag, return the cache lines state
-cacheState SetCache::findTag(unsigned long long set, 
-                              unsigned long long tag) const
+cacheState SetCache::findTag(uint64_t set, 
+                              uint64_t tag) const
 {
    cacheLine temp;
    temp.tag = tag;
@@ -66,7 +66,7 @@ cacheState SetCache::findTag(unsigned long long set,
 
 /* FIXME invalid vs not found */
 // Changes the cache line specificed by "set" and "tag" to "state"
-void SetCache::changeState(unsigned long long set, unsigned long long tag, 
+void SetCache::changeState(uint64_t set, uint64_t tag, 
                               cacheState state)
 {
    cacheLine temp;
@@ -82,12 +82,12 @@ void SetCache::changeState(unsigned long long set, unsigned long long tag,
 
 // A complete LRU is mantained for each set, using a separate
 // list and map. The front of the list is considered most recently used.
-void SetCache::updateLRU(unsigned long long set, unsigned long long tag)
+void SetCache::updateLRU(uint64_t set, uint64_t tag)
 {
-   std::unordered_map<unsigned long long, 
-      std::list<unsigned long long>::iterator>::iterator map_it;
-   std::list<unsigned long long>::iterator it;
-   unsigned long long temp;
+   std::unordered_map<uint64_t, 
+      std::list<uint64_t>::iterator>::iterator map_it;
+   std::list<uint64_t>::iterator it;
+   uint64_t temp;
 
    map_it = lruMaps[set].find(tag);
 
@@ -115,8 +115,8 @@ void SetCache::updateLRU(unsigned long long set, unsigned long long tag)
 // Called if a new cache line is to be inserted. Checks if
 // the least recently used line needs to be written back to
 // main memory.
-bool SetCache::checkWriteback(unsigned long long set, 
-                                 unsigned long long& tag) const
+bool SetCache::checkWriteback(uint64_t set, 
+                                 uint64_t& tag) const
 {
    cacheLine evict, temp;
    tag = lruLists[set].back();
@@ -129,10 +129,10 @@ bool SetCache::checkWriteback(unsigned long long set,
 // FIXME: invalid vs not found
 // Insert a new cache line by popping the least recently used line
 // and pushing the new line to the back (most recently used)
-void SetCache::insertLine(unsigned long long set, unsigned long long tag, 
+void SetCache::insertLine(uint64_t set, uint64_t tag, 
                            cacheState state)
 {
-   unsigned long long to_evict = lruLists[set].back();
+   uint64_t to_evict = lruLists[set].back();
    cacheLine newLine, temp;
    newLine.tag = tag;
    newLine.state = state;
@@ -160,8 +160,8 @@ DequeCache::DequeCache(unsigned int num_lines, unsigned int assoc)
 
 // Given the set and tag, return the cache lines state
 // INVALID and "not found" are equivalent
-cacheState DequeCache::findTag(unsigned long long set, 
-                                 unsigned long long tag) const
+cacheState DequeCache::findTag(uint64_t set, 
+                                 uint64_t tag) const
 {
    std::deque<cacheLine>::const_iterator it = sets[set].begin();
 
@@ -178,7 +178,7 @@ cacheState DequeCache::findTag(unsigned long long set,
 }
 
 // Changes the cache line specificed by "set" and "tag" to "state"
-void DequeCache::changeState(unsigned long long set, unsigned long long tag, 
+void DequeCache::changeState(uint64_t set, uint64_t tag, 
                               cacheState state)
 {
    std::deque<cacheLine>::iterator it = sets[set].begin();
@@ -195,7 +195,7 @@ void DequeCache::changeState(unsigned long long set, unsigned long long tag,
 // A complete LRU is mantained for each set, using the ordering
 // of the set deque. The end is considered most
 // recently used.
-void DequeCache::updateLRU(unsigned long long set, unsigned long long tag)
+void DequeCache::updateLRU(uint64_t set, uint64_t tag)
 {
    std::deque<cacheLine>::iterator it = sets[set].begin();
    cacheLine temp;
@@ -223,8 +223,8 @@ void DequeCache::updateLRU(unsigned long long set, unsigned long long tag)
 // Called if a new cache line is to be inserted. Checks if
 // the least recently used line needs to be written back to
 // main memory.
-bool DequeCache::checkWriteback(unsigned long long set, 
-                                 unsigned long long& tag) const
+bool DequeCache::checkWriteback(uint64_t set, 
+                                 uint64_t& tag) const
 {
    cacheLine evict = sets[set].front();
    tag = evict.tag;
@@ -234,7 +234,7 @@ bool DequeCache::checkWriteback(unsigned long long set,
 
 // Insert a new cache line by popping the least recently used line
 // and pushing the new line to the back (most recently used)
-void DequeCache::insertLine(unsigned long long set, unsigned long long tag, 
+void DequeCache::insertLine(uint64_t set, uint64_t tag, 
                               cacheState state)
 {
    cacheLine newLine;

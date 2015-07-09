@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2013 Justin Funston
+Copyright (c) 2015 Justin Funston
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -24,20 +24,20 @@ freely, subject to the following restrictions:
 #include "prefetch.h"
 #include "system.h"
 
-int Prefetch::prefetchMiss(unsigned long long address __attribute__((unused)), 
+int NullPrefetch::prefetchMiss(uint64_t address __attribute__((unused)), 
                               unsigned int tid __attribute__((unused)),
                               System* sys __attribute__((unused)))
 {
    return 0;
 }
-int Prefetch::prefetchHit(unsigned long long address __attribute__((unused)), 
+int NullPrefetch::prefetchHit(uint64_t address __attribute__((unused)), 
                            unsigned int tid __attribute__((unused)),
                            System* sys __attribute__((unused)))
 {
    return 0;
 }
 
-int AdjPrefetch::prefetchMiss(unsigned long long address, unsigned int tid,
+int AdjPrefetch::prefetchMiss(uint64_t address, unsigned int tid,
                                  System* sys)
 {
    sys->memAccess(address + (1 << sys->SET_SHIFT), 'R', tid, true);
@@ -45,17 +45,17 @@ int AdjPrefetch::prefetchMiss(unsigned long long address, unsigned int tid,
 }
 
 // Called to check for prefetches in the case of a cache miss.
-int SeqPrefetch::prefetchMiss(unsigned long long address, unsigned int tid,
+int SeqPrefetch::prefetchMiss(uint64_t address, unsigned int tid,
                                  System* sys)
 {
-   unsigned long long set = (address & sys->SET_MASK) >> sys->SET_SHIFT;
-   unsigned long long tag = address & sys->TAG_MASK;
-   unsigned long long lastSet = (lastMiss & sys->SET_MASK) >> sys->SET_SHIFT;
-   unsigned long long lastTag = lastMiss & sys->TAG_MASK;
+   uint64_t set = (address & sys->SET_MASK) >> sys->SET_SHIFT;
+   uint64_t tag = address & sys->TAG_MASK;
+   uint64_t lastSet = (lastMiss & sys->SET_MASK) >> sys->SET_SHIFT;
+   uint64_t lastTag = lastMiss & sys->TAG_MASK;
    int prefetched = 0;
 
    if(tag == lastTag && (lastSet+1) == set) {
-      for(unsigned int i=0; i < prefetchNum; i++) {
+      for(int i=0; i < prefetchNum; i++) {
          prefetched++;
          // Call memAccess to resolve the prefetch. The address is 
          // incremented in the set portion of its bits (least
@@ -71,7 +71,7 @@ int SeqPrefetch::prefetchMiss(unsigned long long address, unsigned int tid,
    return prefetched;
 }
 
-int AdjPrefetch::prefetchHit(unsigned long long address, unsigned int tid,
+int AdjPrefetch::prefetchHit(uint64_t address, unsigned int tid,
       System* sys)
 {
    sys->memAccess(address + (1 << sys->SET_SHIFT), 'R', tid, true);
@@ -79,14 +79,14 @@ int AdjPrefetch::prefetchHit(unsigned long long address, unsigned int tid,
 }
 
 // Called to check for prefetches in the case of a cache hit.
-int SeqPrefetch::prefetchHit(unsigned long long address, unsigned int tid,
+int SeqPrefetch::prefetchHit(uint64_t address, unsigned int tid,
       System* sys)
 {
-   unsigned long long set = (address & sys->SET_MASK) >> sys->SET_SHIFT;
-   unsigned long long tag = address & sys->TAG_MASK;
-   unsigned long long lastSet = (lastPrefetch & sys->SET_MASK) 
+   uint64_t set = (address & sys->SET_MASK) >> sys->SET_SHIFT;
+   uint64_t tag = address & sys->TAG_MASK;
+   uint64_t lastSet = (lastPrefetch & sys->SET_MASK) 
                                     >> sys->SET_SHIFT;
-   unsigned long long lastTag = lastPrefetch & sys->TAG_MASK;
+   uint64_t lastTag = lastPrefetch & sys->TAG_MASK;
 
    if(tag == lastTag && lastSet == set) {
       // Call memAccess to resolve the prefetch. The address is 

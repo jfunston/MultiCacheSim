@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2013 Justin Funston
+Copyright (c) 2015 Justin Funston
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -35,30 +35,30 @@ freely, subject to the following restrictions:
 class Cache{
 public:
    virtual ~Cache(){}
-   virtual cacheState findTag(unsigned long long set, 
-                                 unsigned long long tag) const = 0;
-   virtual void changeState(unsigned long long set, 
-                              unsigned long long tag, cacheState state) = 0;
-   virtual void updateLRU(unsigned long long set, unsigned long long tag) = 0;
-   virtual bool checkWriteback(unsigned long long set, 
-      unsigned long long& tag) const = 0;
-   virtual void insertLine(unsigned long long set, 
-                              unsigned long long tag, cacheState state) = 0;
+   virtual cacheState findTag(uint64_t set, 
+                                 uint64_t tag) const = 0;
+   virtual void changeState(uint64_t set, 
+                              uint64_t tag, cacheState state) = 0;
+   virtual void updateLRU(uint64_t set, uint64_t tag) = 0;
+   virtual bool checkWriteback(uint64_t set, 
+      uint64_t& tag) const = 0;
+   virtual void insertLine(uint64_t set, 
+                              uint64_t tag, cacheState state) = 0;
 };
 
 class SetCache : public Cache{
    std::vector<std::set<cacheLine> > sets;
-   std::vector<std::list<unsigned long long> > lruLists;
-   std::vector<std::unordered_map<unsigned long long, 
-      std::list<unsigned long long>::iterator> > lruMaps;
+   std::vector<std::list<uint64_t> > lruLists;
+   std::vector<std::unordered_map<uint64_t, 
+      std::list<uint64_t>::iterator> > lruMaps;
 public:
    SetCache(unsigned int num_lines, unsigned int assoc);
-   cacheState findTag(unsigned long long set, unsigned long long tag) const;
-   void changeState(unsigned long long set, unsigned long long tag, 
+   cacheState findTag(uint64_t set, uint64_t tag) const;
+   void changeState(uint64_t set, uint64_t tag, 
                      cacheState state);
-   void updateLRU(unsigned long long set, unsigned long long tag);
-   bool checkWriteback(unsigned long long set, unsigned long long& tag) const;
-   void insertLine(unsigned long long set, unsigned long long tag, 
+   void updateLRU(uint64_t set, uint64_t tag);
+   bool checkWriteback(uint64_t set, uint64_t& tag) const;
+   void insertLine(uint64_t set, uint64_t tag, 
                      cacheState state);
 };
 
@@ -66,12 +66,12 @@ class DequeCache : public Cache{
    std::vector<std::deque<cacheLine> > sets;
 public:
    DequeCache(unsigned int num_lines, unsigned int assoc);
-   cacheState findTag(unsigned long long set, unsigned long long tag) const;
-   void changeState(unsigned long long set, unsigned long long tag, 
+   cacheState findTag(uint64_t set, uint64_t tag) const;
+   void changeState(uint64_t set, uint64_t tag, 
                     cacheState state);
-   void updateLRU(unsigned long long set, unsigned long long tag);
-   bool checkWriteback(unsigned long long set, unsigned long long& tag) const;
-   void insertLine(unsigned long long set, unsigned long long tag, 
+   void updateLRU(uint64_t set, uint64_t tag);
+   bool checkWriteback(uint64_t set, uint64_t& tag) const;
+   void insertLine(uint64_t set, uint64_t tag, 
                      cacheState state);
 };
 

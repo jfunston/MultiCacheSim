@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2013 Justin Funston
+Copyright (c) 2015 Justin Funston
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -57,50 +57,50 @@ protected:
    friend class SeqPrefetch;
    friend class AdjPrefetch;
    Prefetch* prefetcher;
-   unsigned long long SET_MASK;
-   unsigned long long TAG_MASK;
-   unsigned long long LINE_MASK;
+   uint64_t SET_MASK;
+   uint64_t TAG_MASK;
+   uint64_t LINE_MASK;
    unsigned int SET_SHIFT;
    std::vector<unsigned int> tid_to_domain;
    //The cutoff associativity for using the deque cache implementation
    static const unsigned int assocCutoff = 64;
 
    // Used for compulsory misses
-   std::set<unsigned long long> seenLines;
+   std::set<uint64_t> seenLines;
    // Stores virtual to physical page mappings
-   std::map<unsigned long long, unsigned long long> virtToPhysMap;
+   std::map<uint64_t, uint64_t> virtToPhysMap;
    // Used for determining new virtual to physical mappings
-   unsigned long long nextPage;
+   uint64_t nextPage;
    bool countCompulsory;
    bool doAddrTrans;
 
-   unsigned long long virtToPhys(unsigned long long address);
-   void checkCompulsory(unsigned long long line);
+   uint64_t virtToPhys(uint64_t address);
+   void checkCompulsory(uint64_t line);
 public:
    System(std::vector<unsigned int> tid_to_domain,
             unsigned int line_size, unsigned int num_lines, unsigned int assoc,
             Prefetch* prefetcher, bool count_compulsory=false, 
             bool do_addr_trans=false);
-   virtual void memAccess(unsigned long long address, char rw, 
-                           unsigned int tid, bool is_prefetch) = 0;
+   virtual void memAccess(uint64_t address, char rw, 
+                           unsigned int tid, bool is_prefetch=false) = 0;
    SystemStats stats;
 };
 
 //For a system containing multiple caches
 class MultiCacheSystem : public System {
    // Stores domain location of pages
-   std::map<unsigned long long, unsigned int> pageToDomain;
+   std::map<uint64_t, unsigned int> pageToDomain;
    std::vector<Cache*> caches;
 
-   int checkRemoteStates(unsigned long long set, unsigned long long tag, 
+   unsigned int checkRemoteStates(uint64_t set, uint64_t tag, 
                         cacheState& state, unsigned int local);
-   void updatePageToDomain(unsigned long long address, unsigned int curDomain);
-   void setRemoteStates(unsigned long long set, unsigned long long tag, 
+   void updatePageToDomain(uint64_t address, unsigned int curDomain);
+   void setRemoteStates(uint64_t set, uint64_t tag, 
                         cacheState state, unsigned int local);
-   void evictTraffic(unsigned long long set, unsigned long long tag, 
+   void evictTraffic(uint64_t set, uint64_t tag, 
                      unsigned int local);
-   bool isLocal(unsigned long long address, unsigned int local);
-   cacheState processMOESI(unsigned long long set, unsigned long long tag, 
+   bool isLocal(uint64_t address, unsigned int local);
+   cacheState processMOESI(uint64_t set, uint64_t tag, 
                   cacheState remote_state, char rw, bool is_prefetch, 
                   bool local_traffic, unsigned int local, unsigned int remote);
 public:
@@ -109,8 +109,8 @@ public:
             Prefetch* prefetcher, bool count_compulsory=false, 
             bool do_addr_trans=false, unsigned int num_domains=1);
    ~MultiCacheSystem();
-   void memAccess(unsigned long long address, char rw, unsigned int tid, 
-                     bool is_prefetch);
+   void memAccess(uint64_t address, char rw, unsigned int tid, 
+                     bool is_prefetch=false);
 };
 
 //For a system containing a sinle cache
@@ -124,8 +124,8 @@ public:
             Prefetch* prefetcher, bool count_compulsory=false, 
             bool do_addr_trans=false);
    ~SingleCacheSystem();
-   void memAccess(unsigned long long address, char rw, unsigned int tid, 
-                     bool is_prefetch);
+   void memAccess(uint64_t address, char rw, unsigned int tid, 
+                     bool is_prefetch=false);
 };
 
 #endif

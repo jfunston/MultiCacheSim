@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2013 Justin Funston
+Copyright (c) 2015 Justin Funston
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -24,15 +24,24 @@ freely, subject to the following restrictions:
 #ifndef PREFETCH_H
 #define PREFETCH_H
 
+#include <cstdint>
+
 class System;
 
-// Base class and serves as the "null"
-// prefetcher.
 class Prefetch {
 public:
-   virtual int prefetchMiss(unsigned long long address, unsigned int tid, 
+   virtual int prefetchMiss(uint64_t address, unsigned int tid, 
+                              System* sys)=0;
+   virtual int prefetchHit(uint64_t address, unsigned int tid,
+                              System* sys)=0;
+};
+
+//"Prefetcher" that does nothing
+class NullPrefetch : public Prefetch {
+public:
+   int prefetchMiss(uint64_t address, unsigned int tid, 
                               System* sys);
-   virtual int prefetchHit(unsigned long long address, unsigned int tid,
+   int prefetchHit(uint64_t address, unsigned int tid,
                               System* sys);
 };
 
@@ -40,12 +49,12 @@ public:
 // line prefetcher. Primary difference is that
 // thre real prefetcher has a dynamic prefetch width.
 class SeqPrefetch : public Prefetch {
-   unsigned long long lastMiss;
-   unsigned long long lastPrefetch;
+   uint64_t lastMiss;
+   uint64_t lastPrefetch;
    static const unsigned int prefetchNum = 3;
 public:
-   int prefetchMiss(unsigned long long address, unsigned int tid, System* sys);
-   int prefetchHit(unsigned long long address, unsigned int tid, System* sys);
+   int prefetchMiss(uint64_t address, unsigned int tid, System* sys);
+   int prefetchHit(uint64_t address, unsigned int tid, System* sys);
    SeqPrefetch()
    { lastMiss = lastPrefetch = 0;}
 };
@@ -53,8 +62,8 @@ public:
 // A simple adjacent line prefetcher
 class AdjPrefetch : public Prefetch {
 public:
-   int prefetchMiss(unsigned long long address, unsigned int tid, System* sys);
-   int prefetchHit(unsigned long long address, unsigned int tid, System* sys);
+   int prefetchMiss(uint64_t address, unsigned int tid, System* sys);
+   int prefetchHit(uint64_t address, unsigned int tid, System* sys);
 };
 
 #endif

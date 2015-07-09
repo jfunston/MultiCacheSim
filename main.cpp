@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2013 Justin Funston
+Copyright (c) 2015 Justin Funston
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -42,26 +42,31 @@ int main()
    // The constructor parameters are:
    // the tid_map, the cache line size in bytes,
    // number of cache lines, the associativity,
+   // the prefetcher object,
    // whether to count compulsory misses,
    // whether to do virtual to physical translation,
    // and number of caches/domains
    // WARNING: counting compulsory misses doubles execution time
    MultiCacheSystem sys(tid_map, 64, 1024, 64, &prefetch, false, false, 2);
    char rw;
-   unsigned long long address;
+   uint64_t address;
    unsigned long long lines = 0;
    ifstream infile;
-   infile.open("pinatrace.out", ifstream::in | ifstream::binary);
+   // This code works with the output from the 
+   // ManualExamples/pinatrace pin tool
+   infile.open("pinatrace.out", ifstream::in);
    assert(infile.is_open());
 
    while(!infile.eof())
    {
-      infile.read(&rw, sizeof(char));
+      infile.ignore(256, ':');
+      infile >> rw;
       assert(rw == 'R' || rw == 'W');
-
-      infile.read((char*)&address, sizeof(unsigned long long));
+      infile >> hex >> address;
       if(address != 0) {
-         sys.memAccess(address, rw, 0, false);
+         // By default the pinatrace tool doesn't record the tid,
+         // so we make up a tid to stress the MultiCache functionality
+         sys.memAccess(address, rw, lines%2);
       }
 
       ++lines;
@@ -72,9 +77,9 @@ int main()
    cout << "Misses: " << lines - sys.stats.hits << endl;
    cout << "Local reads: " << sys.stats.local_reads << endl;
    cout << "Local writes: " << sys.stats.local_writes << endl;
-   cout << "Remote reads: " << sys.remote_reads << endl;
-   cout << "Remote writes: " << sys.remote_writes << endl;
-   cout << "Other-cache reads: " << sys.othercache_reads << endl;
+   cout << "Remote reads: " << sys.stats.remote_reads << endl;
+   cout << "Remote writes: " << sys.stats.remote_writes << endl;
+   cout << "Other-cache reads: " << sys.stats.othercache_reads << endl;
    //cout << "Compulsory Misses: " << sys.stats.compulsory << endl;
    
    infile.close();

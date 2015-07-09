@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2013 Justin Funston
+Copyright (c) 2015 Justin Funston
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -39,7 +39,7 @@ System::System(std::vector<unsigned int> tid_to_domain,
       stats.othercache_reads = stats.local_writes = 
       stats.remote_writes = stats.compulsory = 0;
 
-   LINE_MASK = ((unsigned long long) line_size)-1;
+   LINE_MASK = ((uint64_t) line_size)-1;
    SET_SHIFT = log2(line_size);
    SET_MASK = ((num_lines / assoc) - 1) << SET_SHIFT;
    TAG_MASK = ~(SET_MASK | LINE_MASK);
@@ -52,9 +52,9 @@ System::System(std::vector<unsigned int> tid_to_domain,
    this->prefetcher = prefetcher;
 }
 
-void System::checkCompulsory(unsigned long long line)
+void System::checkCompulsory(uint64_t line)
 {
-   std::set<unsigned long long>::iterator it;
+   std::set<uint64_t>::iterator it;
 
    it = seenLines.find(line);
    if(it == seenLines.end()) {
@@ -63,12 +63,12 @@ void System::checkCompulsory(unsigned long long line)
    }
 }
 
-unsigned long long System::virtToPhys(unsigned long long address)
+uint64_t System::virtToPhys(uint64_t address)
 {
-   std::map<unsigned long long, unsigned long long>::iterator it;
-   unsigned long long virt_page = address & PAGE_MASK;
-   unsigned long long phys_page;
-   unsigned long long phys_addr = address & (~PAGE_MASK);
+   std::map<uint64_t, uint64_t>::iterator it;
+   uint64_t virt_page = address & PAGE_MASK;
+   uint64_t phys_page;
+   uint64_t phys_addr = address & (~PAGE_MASK);
 
    it = virtToPhysMap.find(virt_page);
    if(it != virtToPhysMap.end()) {
@@ -86,43 +86,49 @@ unsigned long long System::virtToPhys(unsigned long long address)
    return phys_addr;
 }
 
-int MultiCacheSystem::checkRemoteStates(unsigned long long set, 
-               unsigned long long tag, cacheState& state, unsigned int local)
+unsigned int MultiCacheSystem::checkRemoteStates(uint64_t set, 
+               uint64_t tag, cacheState& state, unsigned int local)
 {
    cacheState curState = INV;
    state = INV;
-   int remote = 0;
+   unsigned int remote = 0;
 
    for(unsigned int i=0; i<caches.size(); i++) {
-      if(i != local) {
-         curState = caches[i]->findTag(set, tag);
-         if(curState == OWN) {
+      if(i == local) {
+         continue;
+      }
+      curState = caches[i]->findTag(set, tag);
+      switch (curState)
+      {
+         case OWN:
             state = OWN;
             return i;
-         }
-         else if(curState == SHA) {
-            state = SHA;
+            break;
+         case SHA:
             // A cache line in a shared state may be
             // in the owned state in a different cache
             // so don't return i immdiately
+            state = SHA;
             remote = i;
-         }
-         else if(curState == EXC) {
+            break;
+         case EXC:
             state = EXC;
             return i;
-         }
-         else if(curState == MOD) {
+            break;
+         case MOD:
             state = MOD;
             return i;
-         }
+            break;
+         default:
+            break;
       }
    }
 
    return remote;
 }
 
-void MultiCacheSystem::setRemoteStates(unsigned long long set, 
-               unsigned long long tag, cacheState state, unsigned int local)
+void MultiCacheSystem::setRemoteStates(uint64_t set, 
+               uint64_t tag, cacheState state, unsigned int local)
 {
    for(unsigned int i=0; i<caches.size(); i++) {
       if(i != local) {
@@ -132,12 +138,12 @@ void MultiCacheSystem::setRemoteStates(unsigned long long set,
 }
 
 // Maintains the statistics for memory write-backs
-void MultiCacheSystem::evictTraffic(unsigned long long set, 
-               unsigned long long tag, unsigned int local)
+void MultiCacheSystem::evictTraffic(uint64_t set, 
+               uint64_t tag, unsigned int local)
 {
-   unsigned long long page = ((set << SET_SHIFT) | tag) & PAGE_MASK;
+   uint64_t page = ((set << SET_SHIFT) | tag) & PAGE_MASK;
 #ifdef DEBUG
-   map<unsigned long long, unsigned int>::iterator it;
+   map<uint64_t, unsigned int>::iterator it;
    it = pageList.find(page);
    assert(it != pageList.end());
 #endif
@@ -151,11 +157,11 @@ void MultiCacheSystem::evictTraffic(unsigned long long set,
    }
 }
 
-bool MultiCacheSystem::isLocal(unsigned long long address, unsigned int local)
+bool MultiCacheSystem::isLocal(uint64_t address, unsigned int local)
 {
-   unsigned long long page = address & PAGE_MASK;
+   uint64_t page = address & PAGE_MASK;
 #ifdef DEBUG
-   map<unsigned long long, unsigned int>::iterator it;
+   map<uint64_t, unsigned int>::iterator it;
    it = pageList.find(page);
    assert(it != pageList.end());
 #endif
@@ -165,8 +171,8 @@ bool MultiCacheSystem::isLocal(unsigned long long address, unsigned int local)
 }
 
 
-cacheState MultiCacheSystem::processMOESI(unsigned long long set,
-                  unsigned long long tag, cacheState remote_state, char rw, 
+cacheState MultiCacheSystem::processMOESI(uint64_t set,
+                  uint64_t tag, cacheState remote_state, char rw, 
                   bool is_prefetch, bool local_traffic, unsigned int local, 
                   unsigned int remote)
 {
@@ -236,10 +242,10 @@ cacheState MultiCacheSystem::processMOESI(unsigned long long set,
    return new_state;
 }
 
-void MultiCacheSystem::memAccess(unsigned long long address, char rw, 
-      unsigned int tid, bool is_prefetch)
+void MultiCacheSystem::memAccess(uint64_t address, char rw, 
+      unsigned int tid, bool is_prefetch /*=false*/)
 {
-   unsigned long long set, tag;
+   uint64_t set, tag;
    unsigned int local;
    bool hit;
    cacheState state;
@@ -272,39 +278,39 @@ void MultiCacheSystem::memAccess(unsigned long long address, char rw,
          stats.hits++;
          stats.prefetched += prefetcher->prefetchHit(address, tid, this);
       }
-      return;
    }
+   else {
+      // Now handle miss cases
+      cacheState remote_state;
+      cacheState new_state = INV;
+      uint64_t evicted_tag;
+      bool writeback, local_traffic;
 
-   // Now handle miss cases
-   cacheState remote_state;
-   cacheState new_state = INV;
-   unsigned long long evicted_tag;
-   bool writeback;
+      unsigned int remote = checkRemoteStates(set, tag, remote_state, local);
 
-   unsigned int remote = checkRemoteStates(set, tag, remote_state, local);
+      writeback = caches[local]->checkWriteback(set, evicted_tag);
+      if(writeback) {
+         evictTraffic(set, evicted_tag, local);
+      }
 
-   writeback = caches[local]->checkWriteback(set, evicted_tag);
-   if(writeback) {
-      evictTraffic(set, evicted_tag, local);
-   }
+      local_traffic = isLocal(address, local);
 
-   bool local_traffic = isLocal(address, local);
-
-   new_state = processMOESI(set, tag, remote_state, rw, is_prefetch, 
-                              local_traffic, local, remote);
-   caches[local]->insertLine(set, tag, new_state);
-   if(!is_prefetch) {
-      stats.prefetched += prefetcher->prefetchMiss(address, tid, this);
+      new_state = processMOESI(set, tag, remote_state, rw, is_prefetch, 
+                                 local_traffic, local, remote);
+      caches[local]->insertLine(set, tag, new_state);
+      if(!is_prefetch) {
+         stats.prefetched += prefetcher->prefetchMiss(address, tid, this);
+      }
    }
 }
 
 // Keeps track of which NUMA domain each memory page is in,
 // using a first-touch policy
-void MultiCacheSystem::updatePageToDomain(unsigned long long address, 
+void MultiCacheSystem::updatePageToDomain(uint64_t address, 
                                           unsigned int curDomain)
 {
-   std::map<unsigned long long, unsigned int>::iterator it;
-   unsigned long long page = address & PAGE_MASK;
+   std::map<uint64_t, unsigned int>::iterator it;
+   uint64_t page = address & PAGE_MASK;
 
    it = pageToDomain.find(page);
    if(it == pageToDomain.end()) {
@@ -342,10 +348,10 @@ MultiCacheSystem::~MultiCacheSystem()
    }
 }
 
-void SingleCacheSystem::memAccess(unsigned long long address, char rw, unsigned 
-   int tid, bool is_prefetch)
+void SingleCacheSystem::memAccess(uint64_t address, char rw, unsigned 
+   int tid, bool is_prefetch /*=false*/)
 {
-   unsigned long long set, tag;
+   uint64_t set, tag;
    bool hit;
    cacheState state;
 
@@ -377,7 +383,7 @@ void SingleCacheSystem::memAccess(unsigned long long address, char rw, unsigned
    }
 
    cacheState new_state = INV;
-   unsigned long long evicted_tag;
+   uint64_t evicted_tag;
    bool writeback = cache->checkWriteback(set, evicted_tag);
 
    if(writeback) {

@@ -1,9 +1,10 @@
 Author: Justin Funston
-Modified: January 2013
-Email: jfunston@sfu.ca
+Modified: July 2015
+Email: justinfunston@gmail.com
 
 MultiCacheSim is a cache simulator designed to be used with 
-memory access traces obtained with Pin (www.pintool.org). It
+memory access traces obtained with Pin: 
+https://software.intel.com/en-us/articles/pintool. It
 has been optimized for performance and can process large inputs
 (100s of GB) in a few hours depending on configuration.
 
@@ -41,7 +42,7 @@ steps are:
       where the index into the vector represents the TID
 2. Create a SeqPrefetch (sequential prefetching similar to AMD L1
       prefetcher), AdjPrefetch (adjacent line prefetcher), or a
-      Prefetch (placeholder that doesn't prefetch) object.
+      NullPrefetch (placeholder that doesn't prefetch) object.
 3. Create a SingleCacheSystem or MultiCacheSystem object using the 
       constructor, which takes:
       the vector from step 1, the size of a cache line in bytes, 
@@ -55,6 +56,9 @@ steps are:
 
 The assumed page size can be changed in misc.h, and the prefetch width
 for the SeqPrefetch class can be changed in prefetch.h (default 3 lines).
+
+The driver example in main.cpp works with the output from the
+ManualExamples/pinatrace pin tool.
 
 MULTI-PROCESS WORKLOADS
 -----------------------
@@ -82,7 +86,7 @@ range actually shared among processes.
 LICENSE
 -------
 
-Copyright (c) 2013 Justin Funston
+Copyright (c) 2015 Justin Funston
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
