@@ -1,5 +1,5 @@
 Author: Justin Funston
-Modified: July 2015
+Modified: July 2018
 Email: justinfunston@gmail.com
 
 MultiCacheSim is a cache simulator designed to be used with 
@@ -29,9 +29,7 @@ Simply run "make" to compile the simulator with the example driver
 program (main.cpp). If you are modifying the simulator, use the
 DEBUG flags in the Makefile which enables run-time error checking.
 
-Compilation requires a compiler supporting the unorderd_map class
-from c++11. If one isn't available the instances of unordered_map
-can be changed to map in cache.h and cache.cpp.
+Compilation requires a compiler supporting c++11
 
 USAGE
 -----
@@ -41,8 +39,8 @@ steps are:
 1. Create a vector mapping thread IDs to NUMA domains,
       where the index into the vector represents the TID
 2. Create a SeqPrefetch (sequential prefetching similar to AMD L1
-      prefetcher), AdjPrefetch (adjacent line prefetcher), or a
-      NullPrefetch (placeholder that doesn't prefetch) object.
+      prefetcher) or AdjPrefetch (adjacent line prefetcher) if
+      wanted.
 3. Create a SingleCacheSystem or MultiCacheSystem object using the 
       constructor, which takes:
       the vector from step 1, the size of a cache line in bytes, 
@@ -86,7 +84,7 @@ range actually shared among processes.
 LICENSE
 -------
 
-Copyright (c) 2015 Justin Funston
+Copyright (c) 2015-2018 Justin Funston
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages

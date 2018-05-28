@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 Justin Funston
+Copyright (c) 2015-2018 Justin Funston
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -21,33 +21,32 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-#ifndef MISC_H
-#define MISC_H
+#pragma once
 
 #include <cstdint>
 
 #define PAGE_SIZE_4KB
 
 #ifdef PAGE_SIZE_4KB
-const uint64_t PAGE_MASK = 0xFFFFFFFFFFFFF000;
-const uint32_t PAGE_SHIFT = 12;
+constexpr uint64_t pageMask = 0xFFFFFFFFFFFFF000;
+constexpr uint32_t pageShift = 12;
 #elif defined PAGE_SIZE_2MB
-const uint64_t PAGE_MASK = 0xFFFFFFFFFFE00000;
-const uint32_t PAGE_SHIFT = 21;
+constexpr uint64_t pageMask = 0xFFFFFFFFFFE00000;
+constexpr uint32_t pageShift = 21;
 #else
 #error "Bad PAGE_SIZE"
 #endif
 
-enum cacheState {MOD,OWN,EXC,SHA,INV};
+enum class CacheState {Modified,Owned,Exclusive,Shared,Invalid};
 
-struct cacheLine{
-   uint64_t tag;
-   cacheState state;
-   cacheLine(){tag = 0; state = INV;}
-   bool operator<(const cacheLine& rhs) const
+struct CacheLine{
+   uint64_t tag{0};
+   CacheState state{CacheState::Invalid};
+
+   CacheLine(uint64_t tag = 0, CacheState state = CacheState::Invalid) : 
+               tag(tag), state(state) {}
+   bool operator<(const CacheLine& rhs) const
    { return tag < rhs.tag; }
-   bool operator==(const cacheLine& rhs) const
+   bool operator==(const CacheLine& rhs) const
    { return tag == rhs.tag; }
 };
-
-#endif

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 Justin Funston
+Copyright (c) 2015-2018 Justin Funston
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -26,6 +26,7 @@ freely, subject to the following restrictions:
 #include <cassert>
 #include <sstream>
 #include <string>
+
 #include "system.h"
 
 using namespace std;
@@ -38,7 +39,7 @@ int main()
    unsigned int arr_map[] = {0, 1};
    vector<unsigned int> tid_map(arr_map, arr_map + 
          sizeof(arr_map) / sizeof(unsigned int));
-   SeqPrefetch prefetch;
+   std::unique_ptr<SeqPrefetch> prefetch = std::make_unique<SeqPrefetch>();
    // The constructor parameters are:
    // the tid_map, the cache line size in bytes,
    // number of cache lines, the associativity,
@@ -47,7 +48,7 @@ int main()
    // whether to do virtual to physical translation,
    // and number of caches/domains
    // WARNING: counting compulsory misses doubles execution time
-   MultiCacheSystem sys(tid_map, 64, 1024, 64, &prefetch, false, false, 2);
+   MultiCacheSystem sys(tid_map, 64, 1024, 64, std::move(prefetch), false, false, 2);
    char rw;
    uint64_t address;
    unsigned long long lines = 0;

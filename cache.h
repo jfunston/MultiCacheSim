@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 Justin Funston
+Copyright (c) 2015-2018 Justin Funston
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -21,59 +21,31 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-#ifndef CACHE_H
-#define CACHE_H
+#pragma once
 
 #include <vector>
-#include <set>
-#include <list>
 #include <deque>
-#include <set>
-#include <unordered_map>
+
 #include "misc.h"
 
-class Cache{
+// Represents a single cache
+class Cache {
 public:
-   virtual ~Cache(){}
-   virtual cacheState findTag(uint64_t set, 
-                                 uint64_t tag) const = 0;
-   virtual void changeState(uint64_t set, 
-                              uint64_t tag, cacheState state) = 0;
-   virtual void updateLRU(uint64_t set, uint64_t tag) = 0;
-   virtual bool checkWriteback(uint64_t set, 
-      uint64_t& tag) const = 0;
-   virtual void insertLine(uint64_t set, 
-                              uint64_t tag, cacheState state) = 0;
-};
-
-class SetCache : public Cache{
-   std::vector<std::set<cacheLine> > sets;
-   std::vector<std::list<uint64_t> > lruLists;
-   std::vector<std::unordered_map<uint64_t, 
-      std::list<uint64_t>::iterator> > lruMaps;
-public:
-   SetCache(unsigned int num_lines, unsigned int assoc);
-   cacheState findTag(uint64_t set, uint64_t tag) const;
-   void changeState(uint64_t set, uint64_t tag, 
-                     cacheState state);
+   // num_lines is total line capacity, assoc is the number of ways (locations)
+   // a single line can be placed
+   Cache(unsigned int num_lines, unsigned int assoc);
+   // Returns the state of specified line, or Invalid if not found
+   CacheState findTag(uint64_t set, uint64_t tag) const; 
+   void changeState(uint64_t set, uint64_t tag, CacheState state);
+   // Line must exist in the cache
    void updateLRU(uint64_t set, uint64_t tag);
+   // Returns true if writeback necessary, and the tag of the line if true
    bool checkWriteback(uint64_t set, uint64_t& tag) const;
-   void insertLine(uint64_t set, uint64_t tag, 
-                     cacheState state);
+   // Line should not already exist in cache. Will remove the LRU line in set
+   // if there is not enough space, so checkWriteback should be called before this
+   void insertLine(uint64_t set, uint64_t tag, CacheState state);
+private:
+   std::vector<std::deque<CacheLine>> sets;
+   unsigned int maxSetSize;
 };
-
-class DequeCache : public Cache{
-   std::vector<std::deque<cacheLine> > sets;
-public:
-   DequeCache(unsigned int num_lines, unsigned int assoc);
-   cacheState findTag(uint64_t set, uint64_t tag) const;
-   void changeState(uint64_t set, uint64_t tag, 
-                    cacheState state);
-   void updateLRU(uint64_t set, uint64_t tag);
-   bool checkWriteback(uint64_t set, uint64_t& tag) const;
-   void insertLine(uint64_t set, uint64_t tag, 
-                     cacheState state);
-};
-
-#endif
 

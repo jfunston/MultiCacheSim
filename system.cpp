@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 Justin Funston
+Copyright (c) 2015-2018 Justin Funston
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -24,40 +24,32 @@ freely, subject to the following restrictions:
 #include <cassert>
 #include <cmath>
 #include <cstdlib>
+
 #include "misc.h"
 #include "cache.h"
 #include "system.h"
 
-System::System(std::vector<unsigned int> tid_to_domain,
+System::System(std::vector<unsigned int>& tid_to_domain,
             unsigned int line_size, unsigned int num_lines, unsigned int assoc,
-            Prefetch* prefetcher, bool count_compulsory /*=false*/, 
-            bool do_addr_trans /*=false*/)
+            std::unique_ptr<Prefetch> prefetcher, 
+            bool count_compulsory /*=false*/,
+            bool do_addr_trans /*=false*/) :
+            prefetcher(std::move(prefetcher)),
+            tidToDomain(tid_to_domain),
+            countCompulsory(count_compulsory),
+            doAddrTrans(do_addr_trans)
 {
    assert(num_lines % assoc == 0);
 
-   stats.hits = stats.local_reads = stats.remote_reads = 
-      stats.othercache_reads = stats.local_writes = 
-      stats.remote_writes = stats.compulsory = 0;
-
-   LINE_MASK = ((uint64_t) line_size)-1;
-   SET_SHIFT = log2(line_size);
-   SET_MASK = ((num_lines / assoc) - 1) << SET_SHIFT;
-   TAG_MASK = ~(SET_MASK | LINE_MASK);
-
-   nextPage = 0;
-  
-   countCompulsory = count_compulsory;
-   doAddrTrans = do_addr_trans;
-   this->tid_to_domain = tid_to_domain;
-   this->prefetcher = prefetcher;
+   lineMask = ((uint64_t) line_size)-1;
+   setShift = log2(line_size);
+   setMask = ((num_lines / assoc) - 1) << setShift;
+   tagMask = ~(setMask | lineMask);
 }
 
 void System::checkCompulsory(uint64_t line)
 {
-   std::set<uint64_t>::iterator it;
-
-   it = seenLines.find(line);
-   if(it == seenLines.end()) {
+   if(!seenLines.count(line)) {
       stats.compulsory++;
       seenLines.insert(line);
    }
@@ -65,21 +57,18 @@ void System::checkCompulsory(uint64_t line)
 
 uint64_t System::virtToPhys(uint64_t address)
 {
-   std::map<uint64_t, uint64_t>::iterator it;
-   uint64_t virt_page = address & PAGE_MASK;
-   uint64_t phys_page;
-   uint64_t phys_addr = address & (~PAGE_MASK);
+   uint64_t phys_addr = address & (~pageMask);
+   uint64_t virt_page = address & pageMask;
+   auto it = virtToPhysMap.find(virt_page);
 
-   it = virtToPhysMap.find(virt_page);
    if(it != virtToPhysMap.end()) {
-      phys_page = it->second;
+      uint64_t phys_page = it->second;
       phys_addr |= phys_page;
    }
    else {
-      phys_page = nextPage << PAGE_SHIFT;
+      uint64_t phys_page = nextPage << pageShift;
       phys_addr |= phys_page;
       virtToPhysMap.insert(std::make_pair(virt_page, phys_page));
-      //nextPage += rand() % 200 + 5 ;
       ++nextPage;
    }
 
@@ -87,36 +76,37 @@ uint64_t System::virtToPhys(uint64_t address)
 }
 
 unsigned int MultiCacheSystem::checkRemoteStates(uint64_t set, 
-               uint64_t tag, cacheState& state, unsigned int local)
+               uint64_t tag, CacheState& state, unsigned int local)
 {
-   cacheState curState = INV;
-   state = INV;
+   CacheState curState = CacheState::Invalid;
+   state = CacheState::Invalid;
    unsigned int remote = 0;
 
-   for(unsigned int i=0; i<caches.size(); i++) {
+   for(unsigned int i=0; i<caches.size(); ++i) {
       if(i == local) {
          continue;
       }
+
       curState = caches[i]->findTag(set, tag);
       switch (curState)
       {
-         case OWN:
-            state = OWN;
+         case CacheState::Owned:
+            state = CacheState::Owned;
             return i;
             break;
-         case SHA:
+         case CacheState::Shared:
             // A cache line in a shared state may be
             // in the owned state in a different cache
             // so don't return i immdiately
-            state = SHA;
+            state = CacheState::Shared;
             remote = i;
             break;
-         case EXC:
-            state = EXC;
+         case CacheState::Exclusive:
+            state = CacheState::Exclusive;
             return i;
             break;
-         case MOD:
-            state = MOD;
+         case CacheState::Modified:
+            state = CacheState::Modified;
             return i;
             break;
          default:
@@ -128,9 +118,9 @@ unsigned int MultiCacheSystem::checkRemoteStates(uint64_t set,
 }
 
 void MultiCacheSystem::setRemoteStates(uint64_t set, 
-               uint64_t tag, cacheState state, unsigned int local)
+               uint64_t tag, CacheState state, unsigned int local)
 {
-   for(unsigned int i=0; i<caches.size(); i++) {
+   for(unsigned int i=0; i<caches.size(); ++i) {
       if(i != local) {
          caches[i]->changeState(set, tag, state);
       }
@@ -141,102 +131,108 @@ void MultiCacheSystem::setRemoteStates(uint64_t set,
 void MultiCacheSystem::evictTraffic(uint64_t set, 
                uint64_t tag, unsigned int local)
 {
-   uint64_t page = ((set << SET_SHIFT) | tag) & PAGE_MASK;
+   uint64_t page = ((set << setShift) | tag) & pageMask;
+
 #ifdef DEBUG
-   map<uint64_t, unsigned int>::iterator it;
-   it = pageList.find(page);
+   const auto it = pageList.find(page);
    assert(it != pageList.end());
 #endif
-   unsigned int domain = pageToDomain[page];
 
+   unsigned int domain = pageToDomain[page];
    if(domain == local) {
       stats.local_writes++;
-   }
-   else {
+   } else {
       stats.remote_writes++;
    }
 }
 
 bool MultiCacheSystem::isLocal(uint64_t address, unsigned int local)
 {
-   uint64_t page = address & PAGE_MASK;
+   uint64_t page = address & pageMask;
+
 #ifdef DEBUG
-   map<uint64_t, unsigned int>::iterator it;
-   it = pageList.find(page);
+   const auto it = pageList.find(page);
    assert(it != pageList.end());
 #endif
-   unsigned int domain = pageToDomain[page];
 
+   unsigned int domain = pageToDomain[page];
    return (domain == local);
 }
 
 
-cacheState MultiCacheSystem::processMOESI(uint64_t set,
-                  uint64_t tag, cacheState remote_state, char rw, 
+CacheState MultiCacheSystem::processMOESI(uint64_t set,
+                  uint64_t tag, CacheState remote_state, char rw, 
                   bool is_prefetch, bool local_traffic, unsigned int local, 
                   unsigned int remote)
 {
-   cacheState new_state = INV;
+   CacheState new_state = CacheState::Invalid;
 
-   if(remote_state == INV && rw == 'R') {
-      new_state = EXC;
-      if(local_traffic && !is_prefetch) {
+   if (remote_state == CacheState::Invalid && rw == 'R') {
+      new_state = CacheState::Exclusive;
+
+      if (local_traffic && !is_prefetch) {
          stats.local_reads++;
-      }
-      else if(!is_prefetch) {
+      } else if (!is_prefetch) {
          stats.remote_reads++;
       }
    }
-   else if(remote_state == INV && rw == 'W') {
-      new_state = MOD;
-      if(local_traffic && !is_prefetch) {
+   else if (remote_state == CacheState::Invalid && rw == 'W') {
+      new_state = CacheState::Modified;
+
+      if (local_traffic && !is_prefetch) {
          stats.local_reads++;
-      }
-      else if(!is_prefetch) {
+      } else if (!is_prefetch) {
          stats.remote_reads++;
       }
    }
-   else if(remote_state == SHA && rw == 'R') {
-      new_state = SHA;
-      if(local_traffic && !is_prefetch) {
+   else if (remote_state == CacheState::Shared && rw == 'R') {
+      new_state = CacheState::Shared;
+
+      if (local_traffic && !is_prefetch) {
          stats.local_reads++;
-      }
-      else if(!is_prefetch) {
+      } else if (!is_prefetch) {
          stats.remote_reads++;
       }
    }
-   else if(remote_state == SHA && rw == 'W') {
-      new_state = MOD;
-      setRemoteStates(set, tag, INV, local);
-      if(!is_prefetch) {
+   else if (remote_state == CacheState::Shared && rw == 'W') {
+      new_state = CacheState::Modified;
+      setRemoteStates(set, tag, CacheState::Invalid, local);
+
+      if (!is_prefetch) {
          stats.othercache_reads++;
       }
    }
-   else if((remote_state == MOD || remote_state == OWN) && rw == 'R') {
-      new_state = SHA;
-      caches[remote]->changeState(set, tag, OWN);
-      if(!is_prefetch) {
+   else if ((remote_state == CacheState::Modified || 
+             remote_state == CacheState::Owned) && rw == 'R') {
+      new_state = CacheState::Shared;
+      caches[remote]->changeState(set, tag, CacheState::Owned);
+
+      if (!is_prefetch) {
          stats.othercache_reads++;
       }
    }
-   else if((remote_state == MOD || remote_state == OWN || remote_state == EXC) 
-            && rw == 'W') {
-      new_state = MOD;
-      setRemoteStates(set, tag, INV, local);
-      if(!is_prefetch) {
+   else if ((remote_state == CacheState::Modified || 
+             remote_state == CacheState::Owned || 
+             remote_state == CacheState::Exclusive) 
+             && rw == 'W') {
+      new_state = CacheState::Modified;
+      setRemoteStates(set, tag, CacheState::Invalid, local);
+
+      if (!is_prefetch) {
          stats.othercache_reads++;
       }
    }
-   else if(remote_state == EXC && rw == 'R') {
-      new_state = SHA;
-      caches[remote]->changeState(set, tag, SHA);
-      if(!is_prefetch) {
+   else if (remote_state == CacheState::Exclusive && rw == 'R') {
+      new_state = CacheState::Shared;
+      caches[remote]->changeState(set, tag, CacheState::Shared);
+
+      if (!is_prefetch) {
          stats.othercache_reads++;
       }
    }
 
 #ifdef DEBUG
-   assert(new_state != INV);
+   assert(new_state != CacheState::Invalid);
 #endif
 
    return new_state;
@@ -245,61 +241,58 @@ cacheState MultiCacheSystem::processMOESI(uint64_t set,
 void MultiCacheSystem::memAccess(uint64_t address, char rw, 
       unsigned int tid, bool is_prefetch /*=false*/)
 {
-   uint64_t set, tag;
-   unsigned int local;
-   bool hit;
-   cacheState state;
-
-   if(doAddrTrans) {
+   if (doAddrTrans) {
       address = virtToPhys(address);
    }
 
-   local = tid_to_domain[tid];
+   unsigned int local = tidToDomain[tid];
    updatePageToDomain(address, local);
 
-   set = (address & SET_MASK) >> SET_SHIFT;
-   tag = address & TAG_MASK;
-   state = caches[local]->findTag(set, tag);
-   hit = (state != INV);
+   uint64_t set = (address & setMask) >> setShift;
+   uint64_t tag = address & tagMask;
+   CacheState state = caches[local]->findTag(set, tag);
+   bool hit = (state != CacheState::Invalid);
 
-   if(countCompulsory && !is_prefetch) {
-      checkCompulsory(address & LINE_MASK);
+   if (countCompulsory && !is_prefetch) {
+      checkCompulsory(address & (~lineMask));
    }
 
    // Handle hits 
-   if(rw == 'W' && hit) {  
-      caches[local]->changeState(set, tag, MOD);
-      setRemoteStates(set, tag, INV, local);
+   if (rw == 'W' && hit) { 
+      caches[local]->changeState(set, tag, CacheState::Modified);
+      setRemoteStates(set, tag, CacheState::Invalid, local);
    }
 
-   if(hit) {
+   if (hit) {
       caches[local]->updateLRU(set, tag);
-      if(!is_prefetch) {
+
+      if (!is_prefetch) {
          stats.hits++;
-         stats.prefetched += prefetcher->prefetchHit(address, tid, this);
+         if (prefetcher) {
+            stats.prefetched += prefetcher->prefetchHit(address, tid, *this);
+         }
       }
    }
    else {
       // Now handle miss cases
-      cacheState remote_state;
-      cacheState new_state = INV;
-      uint64_t evicted_tag;
-      bool writeback, local_traffic;
 
+      CacheState remote_state;
       unsigned int remote = checkRemoteStates(set, tag, remote_state, local);
 
-      writeback = caches[local]->checkWriteback(set, evicted_tag);
-      if(writeback) {
+      uint64_t evicted_tag;
+      bool writeback = caches[local]->checkWriteback(set, evicted_tag);
+      // TODO both evictTraffic and isLocal search the the pageToDomain map
+      if (writeback) {
          evictTraffic(set, evicted_tag, local);
       }
 
-      local_traffic = isLocal(address, local);
-
-      new_state = processMOESI(set, tag, remote_state, rw, is_prefetch, 
+      bool local_traffic = isLocal(address, local);
+      CacheState new_state = processMOESI(set, tag, remote_state, rw, is_prefetch, 
                                  local_traffic, local, remote);
       caches[local]->insertLine(set, tag, new_state);
-      if(!is_prefetch) {
-         stats.prefetched += prefetcher->prefetchMiss(address, tid, this);
+
+      if (!is_prefetch && prefetcher) {
+         stats.prefetched += prefetcher->prefetchMiss(address, tid, *this);
       }
    }
 }
@@ -309,120 +302,92 @@ void MultiCacheSystem::memAccess(uint64_t address, char rw,
 void MultiCacheSystem::updatePageToDomain(uint64_t address, 
                                           unsigned int curDomain)
 {
-   std::map<uint64_t, unsigned int>::iterator it;
-   uint64_t page = address & PAGE_MASK;
+   uint64_t page = address & pageMask;
 
-   it = pageToDomain.find(page);
+   const auto it = pageToDomain.find(page);
    if(it == pageToDomain.end()) {
       pageToDomain[page] = curDomain;
    }
 }
 
-MultiCacheSystem::MultiCacheSystem(std::vector<unsigned int> tid_to_domain, 
+MultiCacheSystem::MultiCacheSystem(std::vector<unsigned int>& tid_to_domain, 
             unsigned int line_size, unsigned int num_lines, unsigned int assoc,
-            Prefetch* prefetcher, bool count_compulsory /*=false*/, 
+            std::unique_ptr<Prefetch> prefetcher, bool count_compulsory /*=false*/,
             bool do_addr_trans /*=false*/, unsigned int num_domains) : 
-            System(tid_to_domain, line_size, num_lines, assoc, prefetcher, 
+            System(tid_to_domain, line_size, num_lines, assoc, std::move(prefetcher), 
                      count_compulsory, do_addr_trans)
 {
-   if(assoc > assocCutoff) {
-      for(unsigned int i=0; i<num_domains; i++) {
-         SetCache* temp = new SetCache(num_lines, assoc);
-         caches.push_back(temp);
-      }
-   }
-   else {
-      for(unsigned int i=0; i<num_domains; i++) {
-         DequeCache* temp = new DequeCache(num_lines, assoc);
-         caches.push_back(temp);
-      }
-   }
+   caches.reserve(num_domains);
 
-   return;
-}
-
-MultiCacheSystem::~MultiCacheSystem()
-{
-   for(unsigned int i=0; i<caches.size(); i++) {
-      delete caches[i];
+   for (unsigned int i=0; i<num_domains; ++i) {
+      caches.push_back(std::make_unique<Cache>(num_lines, assoc));
    }
 }
 
-void SingleCacheSystem::memAccess(uint64_t address, char rw, unsigned 
-   int tid, bool is_prefetch /*=false*/)
+void SingleCacheSystem::memAccess(uint64_t address, char rw, unsigned int tid,
+                                  bool is_prefetch /*=false*/)
 {
-   uint64_t set, tag;
-   bool hit;
-   cacheState state;
-
-   if(doAddrTrans) {
+   if (doAddrTrans) {
       address = virtToPhys(address);
    }
 
-   set = (address & SET_MASK) >> SET_SHIFT;
-   tag = address & TAG_MASK;
-   state = cache->findTag(set, tag);
-   hit = (state != INV);
+   uint64_t set = (address & setMask) >> setShift;
+   uint64_t tag = address & tagMask;
+   CacheState state = cache->findTag(set, tag);
+   bool hit = (state != CacheState::Invalid);
 
-   if(countCompulsory && !is_prefetch) {
-      checkCompulsory(address & LINE_MASK);
+   if (countCompulsory && !is_prefetch) {
+      checkCompulsory(address & ~lineMask);
    }
 
    // Handle hits 
-   if(rw == 'W' && hit) {  
-      cache->changeState(set, tag, MOD);
+   if (rw == 'W' && hit) {  
+      cache->changeState(set, tag, CacheState::Modified);
    }
 
-   if(hit) {
+   if (hit) {
       cache->updateLRU(set, tag);
-      if(!is_prefetch) {
+
+      if (!is_prefetch) {
          stats.hits++;
-         stats.prefetched += prefetcher->prefetchHit(address, tid, this);
+         if (prefetcher) {
+            stats.prefetched += prefetcher->prefetchHit(address, tid, *this);
+         }
       }
+
       return;
    }
 
-   cacheState new_state = INV;
+   CacheState new_state = CacheState::Invalid;
    uint64_t evicted_tag;
    bool writeback = cache->checkWriteback(set, evicted_tag);
 
-   if(writeback) {
+   if (writeback) {
       stats.local_writes++;
    }
 
-   if(rw == 'R') {
-      new_state = EXC;
-   }
-   else {
-      new_state = MOD;
+   if (rw == 'R') {
+      new_state = CacheState::Exclusive;
+   } else {
+      new_state = CacheState::Modified;
    }
 
-   if(!is_prefetch) {
+   if (!is_prefetch) {
       stats.local_reads++;
    }
 
    cache->insertLine(set, tag, new_state);
-   if(!is_prefetch) {
-      stats.prefetched += prefetcher->prefetchMiss(address, tid, this);
+   if (!is_prefetch && prefetcher) {
+      stats.prefetched += prefetcher->prefetchMiss(address, tid, *this);
    }
 }
 
-SingleCacheSystem::SingleCacheSystem(std::vector<unsigned int> tid_to_domain, 
+SingleCacheSystem::SingleCacheSystem(std::vector<unsigned int>& tid_to_domain, 
             unsigned int line_size, unsigned int num_lines, unsigned int assoc,
-            Prefetch* prefetcher, bool count_compulsory /*=false*/, 
+            std::unique_ptr<Prefetch> prefetcher, 
+            bool count_compulsory /*=false*/,
             bool do_addr_trans /*=false*/) : 
             System(tid_to_domain, line_size, num_lines, assoc,
-               prefetcher, count_compulsory, do_addr_trans)
-{
-   if(assoc > assocCutoff) {
-         cache = new SetCache(num_lines, assoc);
-   }
-   else {
-         cache = new DequeCache(num_lines, assoc);
-   }
-}
-
-SingleCacheSystem::~SingleCacheSystem()
-{
-   delete cache;
-}
+               std::move(prefetcher), count_compulsory, do_addr_trans), 
+            cache(std::make_unique<Cache>(num_lines, assoc))
+{}

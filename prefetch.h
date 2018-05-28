@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2015 Justin Funston
+Copyright (c) 2015-2018 Justin Funston
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -21,8 +21,7 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-#ifndef PREFETCH_H
-#define PREFETCH_H
+#pragma once
 
 #include <cstdint>
 
@@ -31,39 +30,27 @@ class System;
 class Prefetch {
 public:
    virtual int prefetchMiss(uint64_t address, unsigned int tid, 
-                              System* sys)=0;
+                              System& sys) = 0;
    virtual int prefetchHit(uint64_t address, unsigned int tid,
-                              System* sys)=0;
-};
-
-//"Prefetcher" that does nothing
-class NullPrefetch : public Prefetch {
-public:
-   int prefetchMiss(uint64_t address, unsigned int tid, 
-                              System* sys);
-   int prefetchHit(uint64_t address, unsigned int tid,
-                              System* sys);
+                              System& sys) = 0;
 };
 
 // Modeling AMD's L1 prefetcher, a sequential
 // line prefetcher. Primary difference is that
-// thre real prefetcher has a dynamic prefetch width.
+// the real prefetcher has a dynamic prefetch width.
 class SeqPrefetch : public Prefetch {
-   uint64_t lastMiss;
-   uint64_t lastPrefetch;
-   static const unsigned int prefetchNum = 3;
 public:
-   int prefetchMiss(uint64_t address, unsigned int tid, System* sys);
-   int prefetchHit(uint64_t address, unsigned int tid, System* sys);
-   SeqPrefetch()
-   { lastMiss = lastPrefetch = 0;}
+   int prefetchMiss(uint64_t address, unsigned int tid, System& sys) override;
+   int prefetchHit(uint64_t address, unsigned int tid, System& sys) override;
+private:
+   uint64_t lastMiss{0};
+   uint64_t lastPrefetch{0};
+   static constexpr unsigned int prefetchNum = 3;
 };
 
 // A simple adjacent line prefetcher
 class AdjPrefetch : public Prefetch {
 public:
-   int prefetchMiss(uint64_t address, unsigned int tid, System* sys);
-   int prefetchHit(uint64_t address, unsigned int tid, System* sys);
+   int prefetchMiss(uint64_t address, unsigned int tid, System& sys) override;
+   int prefetchHit(uint64_t address, unsigned int tid, System& sys) override;
 };
-
-#endif

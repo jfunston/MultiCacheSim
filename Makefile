@@ -1,27 +1,27 @@
 CXX = g++
-DEBUG_FLAGS = -O2 -g -Wall -Wextra -DDEBUG -std=gnu++11
-RELEASE_FLAGS= -O3 -march=native -Wall -Wextra -std=gnu++11
+DEBUG_FLAGS = -O2 -g -Wall -Wextra -DDEBUG -std=gnu++14
+RELEASE_FLAGS= -O3 -march=native -Wall -Wextra -std=gnu++14 -flto -static -fno-rtti -fno-exceptions
 CXXFLAGS=$(RELEASE_FLAGS)
 DEPS=$(wildcard *.h) Makefile
 OBJ=system.o cache.o prefetch.o
+BUILD_DIR=$(shell pwd)
 
-all: cache tags check cscope.out 
+all: cache tags check tests/random cscope.out 
 
 cache: main.cpp $(DEPS) $(OBJ)
 	$(CXX) $(CXXFLAGS) -o cache main.cpp $(OBJ)
+
+tests/random: tests/random.cpp $(DEPS) $(OBJ)
+	$(CXX) $(CXXFLAGS) -I$(BUILD_DIR) -o tests/random tests/random.cpp $(OBJ)
 
 %.o: %.cpp $(DEPS)
 	$(CXX) $(CXXFLAGS) -o $@ -c $< 
 
 tags: *.cpp *.h
-	ctags *.cpp *.h
+	ctags *.cpp *.h tests/*.cpp
 
 cscope.out: *.cpp *.h
 	cscope -Rb
-
-.PHONY: backup
-backup:
-	git push -u origin master
 
 .PHONY: check
 check:
