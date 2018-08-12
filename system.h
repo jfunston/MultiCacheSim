@@ -33,14 +33,16 @@ freely, subject to the following restrictions:
 #include "cache.h"
 #include "prefetch.h"
 
+// All stats exclude prefetcher activity (except prefetched)
 struct SystemStats {
-   uint64_t hits{0};
-   uint64_t local_reads{0};
-   uint64_t remote_reads{0};
-   uint64_t othercache_reads{0};
+   uint64_t accesses{0}; // Number of user reads and writes
+   uint64_t hits{0}; // Cache hits. Misses = accesses - hits
+   uint64_t local_reads{0}; // Local node RAM reads. Note that write misses can cause RAM reads
+   uint64_t remote_reads{0}; // Remote node RAM reads
+   uint64_t othercache_reads{0}; // Read from remote node cache
    uint64_t local_writes{0};
    uint64_t remote_writes{0};
-   uint64_t compulsory{0};
+   uint64_t compulsory{0}; // Compulsory misses, i.e. the first access to an address
    uint64_t prefetched{0};
 };
 

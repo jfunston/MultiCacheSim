@@ -244,6 +244,10 @@ void MultiCacheSystem::memAccess(uint64_t address, char rw,
       address = virtToPhys(address);
    }
 
+   if (!is_prefetch) {
+      stats.accesses++;
+   }
+
    unsigned int local = tidToDomain[tid];
    updatePageToDomain(address, local);
 
@@ -329,6 +333,10 @@ void SingleCacheSystem::memAccess(uint64_t address, char rw, unsigned int tid,
 {
    if (doAddrTrans) {
       address = virtToPhys(address);
+   }
+
+   if (!is_prefetch) {
+      stats.accesses++;
    }
 
    uint64_t set = (address & setMask) >> setShift;

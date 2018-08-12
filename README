@@ -81,6 +81,13 @@ region. If an address lies within the range, do not modify the
 address as described above, thus making all addresses in the shared
 range actually shared among processes.
 
+ATTRIBUTION
+-----------
+
+Catch2 (tests/catch.hpp) is used for unit tests, from 
+https://github.com/catchorg/Catch2. It is (c) 2018 Two Blue Cubes Ltd.
+and distributed under the Boost Software License
+
 LICENSE
 -------
 
