@@ -48,7 +48,7 @@ private:
    static constexpr unsigned int prefetchNum = 3;
 };
 
-// A simple adjacent line prefetcher
+// A simple adjacent line prefetcher. Always fetches the next line
 class AdjPrefetch : public Prefetch {
 public:
    int prefetchMiss(uint64_t address, unsigned int tid, System& sys) override;

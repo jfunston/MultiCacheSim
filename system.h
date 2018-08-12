@@ -54,7 +54,6 @@ protected:
    uint64_t tagMask;
    uint64_t lineMask;
    uint32_t setShift;
-   std::vector<unsigned int>& tidToDomain;
 
    // Used for compulsory misses
    std::unordered_set<uint64_t> seenLines;
@@ -69,8 +68,7 @@ protected:
    void checkCompulsory(uint64_t line);
 public:
    virtual ~System() = default;
-   System(std::vector<unsigned int>& tid_to_domain,
-          unsigned int line_size, unsigned int num_lines, unsigned int assoc,
+   System(unsigned int line_size, unsigned int num_lines, unsigned int assoc,
           std::unique_ptr<Prefetch> prefetcher, bool count_compulsory=false, 
           bool do_addr_trans=false);
    virtual void memAccess(uint64_t address, char rw, 
@@ -84,6 +82,7 @@ private:
    // Stores NUMA domain location of pages
    std::unordered_map<uint64_t, unsigned int> pageToDomain;
    std::vector<std::unique_ptr<Cache>> caches;
+   std::vector<unsigned int>& tidToDomain;
 
    unsigned int checkRemoteStates(uint64_t set, uint64_t tag, 
                         CacheState& state, unsigned int local);
@@ -110,10 +109,9 @@ public:
 // performs about 10% better than the MultiCache implementation
 class SingleCacheSystem : public System {
 public:
-   SingleCacheSystem(std::vector<unsigned int>& tid_to_domain,
-            unsigned int line_size, unsigned int num_lines, unsigned int assoc,
-            std::unique_ptr<Prefetch> prefetcher, bool count_compulsory=false, 
-            bool do_addr_trans=false);
+   SingleCacheSystem(unsigned int line_size, unsigned int num_lines, unsigned int assoc,
+               std::unique_ptr<Prefetch> prefetcher, bool count_compulsory=false, 
+               bool do_addr_trans=false);
 
    void memAccess(uint64_t address, char rw, unsigned int tid, 
                      bool is_prefetch=false) override;

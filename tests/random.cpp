@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
 
    unique_ptr<System> sys;
    if (num_caches == 1) {
-      sys = make_unique<SingleCacheSystem>(tid_map, cache_line_size, cache_lines, way_count, 
+      sys = make_unique<SingleCacheSystem>(cache_line_size, cache_lines, way_count, 
                            std::move(prefetch), 
                            compulsory, false);
    } else {

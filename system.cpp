@@ -29,13 +29,12 @@ freely, subject to the following restrictions:
 #include "cache.h"
 #include "system.h"
 
-System::System(std::vector<unsigned int>& tid_to_domain,
+System::System(
             unsigned int line_size, unsigned int num_lines, unsigned int assoc,
             std::unique_ptr<Prefetch> prefetcher, 
             bool count_compulsory /*=false*/,
             bool do_addr_trans /*=false*/) :
             prefetcher(std::move(prefetcher)),
-            tidToDomain(tid_to_domain),
             countCompulsory(count_compulsory),
             doAddrTrans(do_addr_trans)
 {
@@ -314,8 +313,9 @@ MultiCacheSystem::MultiCacheSystem(std::vector<unsigned int>& tid_to_domain,
             unsigned int line_size, unsigned int num_lines, unsigned int assoc,
             std::unique_ptr<Prefetch> prefetcher, bool count_compulsory /*=false*/,
             bool do_addr_trans /*=false*/, unsigned int num_domains) : 
-            System(tid_to_domain, line_size, num_lines, assoc, std::move(prefetcher), 
-                     count_compulsory, do_addr_trans)
+            System(line_size, num_lines, assoc, std::move(prefetcher), 
+                     count_compulsory, do_addr_trans),
+            tidToDomain(tid_to_domain)
 {
    caches.reserve(num_domains);
 
@@ -382,12 +382,12 @@ void SingleCacheSystem::memAccess(uint64_t address, char rw, unsigned int tid,
    }
 }
 
-SingleCacheSystem::SingleCacheSystem(std::vector<unsigned int>& tid_to_domain, 
+SingleCacheSystem::SingleCacheSystem( 
             unsigned int line_size, unsigned int num_lines, unsigned int assoc,
             std::unique_ptr<Prefetch> prefetcher, 
             bool count_compulsory /*=false*/,
             bool do_addr_trans /*=false*/) : 
-            System(tid_to_domain, line_size, num_lines, assoc,
+            System(line_size, num_lines, assoc,
                std::move(prefetcher), count_compulsory, do_addr_trans), 
             cache(std::make_unique<Cache>(num_lines, assoc))
 {}
