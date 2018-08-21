@@ -73,8 +73,7 @@ public:
    System(unsigned int line_size, unsigned int num_lines, unsigned int assoc,
           std::unique_ptr<Prefetch> prefetcher, bool count_compulsory=false, 
           bool do_addr_trans=false);
-   virtual void memAccess(uint64_t address, char rw, 
-                          unsigned int tid, bool is_prefetch=false) = 0;
+   virtual void memAccess(uint64_t address, AccessType type, unsigned int tid) = 0;
    SystemStats stats;
 };
 
@@ -95,7 +94,7 @@ private:
                      unsigned int local);
    bool isLocal(uint64_t address, unsigned int local);
    CacheState processMOESI(uint64_t set, uint64_t tag, 
-                  CacheState remote_state, char rw, bool is_prefetch, 
+                  CacheState remote_state, AccessType accessType, 
                   bool local_traffic, unsigned int local, unsigned int remote);
 public:
    MultiCacheSystem(std::vector<unsigned int>& tid_to_domain,
@@ -103,8 +102,7 @@ public:
             std::unique_ptr<Prefetch> prefetcher, bool count_compulsory=false, 
             bool do_addr_trans=false, unsigned int num_domains=1);
 
-   void memAccess(uint64_t address, char rw, unsigned int tid, 
-                     bool is_prefetch=false) override;
+   void memAccess(uint64_t address, AccessType type, unsigned int tid) override;
 };
 
 // For a system containing a sinle cache
@@ -115,8 +113,7 @@ public:
                std::unique_ptr<Prefetch> prefetcher, bool count_compulsory=false, 
                bool do_addr_trans=false);
 
-   void memAccess(uint64_t address, char rw, unsigned int tid, 
-                     bool is_prefetch=false) override;
+   void memAccess(uint64_t address, AccessType type, unsigned int tid) override;
 private:
    std::unique_ptr<Cache> cache;
 };

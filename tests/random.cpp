@@ -40,7 +40,7 @@ void usage() {
 struct AccessData {
    uint64_t address;
    unsigned int tid;
-   char rw;
+   AccessType accessType;
 };
 
 int main(int argc, char* argv[]) {
@@ -117,7 +117,9 @@ int main(int argc, char* argv[]) {
 
    for (unsigned int i=0; i<iterations; ++i) {
       for (int j=0; j<2000; ++j) {
-         access_buffer[j].rw = rw_generator(engine) == 0 ? 'R' : 'W';
+         access_buffer[j].accessType = rw_generator(engine) == 0 ? 
+                                          AccessType::Read : 
+                                          AccessType::Write;
          access_buffer[j].tid = tid_generator(engine);
             if (distribution_choice == "uniform") {
                access_buffer[j].address = addr_uniform(engine);
@@ -129,7 +131,7 @@ int main(int argc, char* argv[]) {
 
       auto start = chrono::high_resolution_clock::now();
       for (int j=0; j<2000; ++j) {
-         sys->memAccess(access_buffer[j].address, access_buffer[j].rw, access_buffer[j].tid);
+         sys->memAccess(access_buffer[j].address, access_buffer[j].accessType, access_buffer[j].tid);
       }
       auto end = chrono::high_resolution_clock::now();
       run_time += chrono::duration_cast<chrono::duration<double>>(end - start);

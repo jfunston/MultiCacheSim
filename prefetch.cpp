@@ -26,7 +26,7 @@ freely, subject to the following restrictions:
 
 int AdjPrefetch::prefetchMiss(uint64_t address, unsigned int tid, System& sys)
 {
-   sys.memAccess(address + (1 << sys.setShift), 'R', tid, true);
+   sys.memAccess(address + (1 << sys.setShift), AccessType::Prefetch, tid);
    return 1;
 }
 
@@ -46,7 +46,7 @@ int SeqPrefetch::prefetchMiss(uint64_t address, unsigned int tid, System& sys)
          // incremented in the set portion of its bits (least
          // significant bits not in the cache line offset portion)
          sys.memAccess(address + ((1 << sys.setShift) * (i+1)), 
-                           'R', tid, true);
+                           AccessType::Prefetch, tid);
       }
       
       lastPrefetch = address + (1 << sys.setShift);
@@ -58,7 +58,7 @@ int SeqPrefetch::prefetchMiss(uint64_t address, unsigned int tid, System& sys)
 
 int AdjPrefetch::prefetchHit(uint64_t address, unsigned int tid, System& sys)
 {
-   sys.memAccess(address + (1 << sys.setShift), 'R', tid, true);
+   sys.memAccess(address + (1 << sys.setShift), AccessType::Prefetch, tid);
    return 1;
 }
 
@@ -76,7 +76,7 @@ int SeqPrefetch::prefetchHit(uint64_t address, unsigned int tid, System& sys)
       // incremented in the set portion of its bits (least
       // significant bits not in the cache line offset portion)
       sys.memAccess(address + ((1 << sys.setShift) * prefetchNum), 
-                        'R', tid, true);
+                        AccessType::Prefetch, tid);
       lastPrefetch = lastPrefetch + (1 << sys.setShift);
    }
 

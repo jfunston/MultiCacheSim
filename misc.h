@@ -37,7 +37,9 @@ constexpr uint32_t pageShift = 21;
 #error "Bad PAGE_SIZE"
 #endif
 
-enum class CacheState {Modified,Owned,Exclusive,Shared,Invalid};
+enum class CacheState {Modified, Owned, Exclusive, Shared, Invalid};
+
+enum class AccessType {Read, Write, Prefetch};
 
 struct CacheLine{
    uint64_t tag{0};

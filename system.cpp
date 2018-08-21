@@ -119,7 +119,7 @@ unsigned int MultiCacheSystem::checkRemoteStates(uint64_t set,
 void MultiCacheSystem::setRemoteStates(uint64_t set, 
                uint64_t tag, CacheState state, unsigned int local)
 {
-   for(unsigned int i=0; i<caches.size(); ++i) {
+   for(unsigned int i=0; i < caches.size(); ++i) {
       if(i != local) {
          caches[i]->changeState(set, tag, state);
       }
@@ -160,13 +160,14 @@ bool MultiCacheSystem::isLocal(uint64_t address, unsigned int local)
 
 
 CacheState MultiCacheSystem::processMOESI(uint64_t set,
-                  uint64_t tag, CacheState remote_state, char rw, 
-                  bool is_prefetch, bool local_traffic, unsigned int local, 
+                  uint64_t tag, CacheState remote_state, AccessType accessType, 
+                  bool local_traffic, unsigned int local, 
                   unsigned int remote)
 {
    CacheState new_state = CacheState::Invalid;
+   bool is_prefetch = (accessType == AccessType::Prefetch);
 
-   if (remote_state == CacheState::Invalid && rw == 'R') {
+   if (remote_state == CacheState::Invalid && accessType == AccessType::Read) {
       new_state = CacheState::Exclusive;
 
       if (local_traffic && !is_prefetch) {
@@ -175,7 +176,7 @@ CacheState MultiCacheSystem::processMOESI(uint64_t set,
          stats.remote_reads++;
       }
    }
-   else if (remote_state == CacheState::Invalid && rw == 'W') {
+   else if (remote_state == CacheState::Invalid && accessType == AccessType::Write) {
       new_state = CacheState::Modified;
 
       if (local_traffic && !is_prefetch) {
@@ -184,7 +185,7 @@ CacheState MultiCacheSystem::processMOESI(uint64_t set,
          stats.remote_reads++;
       }
    }
-   else if (remote_state == CacheState::Shared && rw == 'R') {
+   else if (remote_state == CacheState::Shared && accessType == AccessType::Read) {
       new_state = CacheState::Shared;
 
       if (local_traffic && !is_prefetch) {
@@ -193,7 +194,7 @@ CacheState MultiCacheSystem::processMOESI(uint64_t set,
          stats.remote_reads++;
       }
    }
-   else if (remote_state == CacheState::Shared && rw == 'W') {
+   else if (remote_state == CacheState::Shared && accessType == AccessType::Write) {
       new_state = CacheState::Modified;
       setRemoteStates(set, tag, CacheState::Invalid, local);
 
@@ -202,7 +203,7 @@ CacheState MultiCacheSystem::processMOESI(uint64_t set,
       }
    }
    else if ((remote_state == CacheState::Modified || 
-             remote_state == CacheState::Owned) && rw == 'R') {
+             remote_state == CacheState::Owned) && accessType == AccessType::Read) {
       new_state = CacheState::Shared;
       caches[remote]->changeState(set, tag, CacheState::Owned);
 
@@ -213,7 +214,7 @@ CacheState MultiCacheSystem::processMOESI(uint64_t set,
    else if ((remote_state == CacheState::Modified || 
              remote_state == CacheState::Owned || 
              remote_state == CacheState::Exclusive) 
-             && rw == 'W') {
+             && accessType == AccessType::Write) {
       new_state = CacheState::Modified;
       setRemoteStates(set, tag, CacheState::Invalid, local);
 
@@ -221,7 +222,7 @@ CacheState MultiCacheSystem::processMOESI(uint64_t set,
          stats.othercache_reads++;
       }
    }
-   else if (remote_state == CacheState::Exclusive && rw == 'R') {
+   else if (remote_state == CacheState::Exclusive && accessType == AccessType::Read) {
       new_state = CacheState::Shared;
       caches[remote]->changeState(set, tag, CacheState::Shared);
 
@@ -237,14 +238,14 @@ CacheState MultiCacheSystem::processMOESI(uint64_t set,
    return new_state;
 }
 
-void MultiCacheSystem::memAccess(uint64_t address, char rw, 
-      unsigned int tid, bool is_prefetch /*=false*/)
+void MultiCacheSystem::memAccess(uint64_t address, AccessType accessType, 
+      unsigned int tid)
 {
    if (doAddrTrans) {
       address = virtToPhys(address);
    }
 
-   if (!is_prefetch) {
+   if (accessType != AccessType::Prefetch) {
       stats.accesses++;
    }
 
@@ -256,12 +257,12 @@ void MultiCacheSystem::memAccess(uint64_t address, char rw,
    CacheState state = caches[local]->findTag(set, tag);
    bool hit = (state != CacheState::Invalid);
 
-   if (countCompulsory && !is_prefetch) {
+   if (countCompulsory && accessType != AccessType::Prefetch) {
       checkCompulsory(address & (~lineMask));
    }
 
    // Handle hits 
-   if (rw == 'W' && hit) { 
+   if (accessType == AccessType::Write && hit) { 
       caches[local]->changeState(set, tag, CacheState::Modified);
       setRemoteStates(set, tag, CacheState::Invalid, local);
    }
@@ -269,7 +270,7 @@ void MultiCacheSystem::memAccess(uint64_t address, char rw,
    if (hit) {
       caches[local]->updateLRU(set, tag);
 
-      if (!is_prefetch) {
+      if (accessType != AccessType::Prefetch) {
          stats.hits++;
          if (prefetcher) {
             stats.prefetched += prefetcher->prefetchHit(address, tid, *this);
@@ -290,11 +291,11 @@ void MultiCacheSystem::memAccess(uint64_t address, char rw,
       }
 
       bool local_traffic = isLocal(address, local);
-      CacheState new_state = processMOESI(set, tag, remote_state, rw, is_prefetch, 
+      CacheState new_state = processMOESI(set, tag, remote_state, accessType, 
                                  local_traffic, local, remote);
       caches[local]->insertLine(set, tag, new_state);
 
-      if (!is_prefetch && prefetcher) {
+      if (accessType == AccessType::Prefetch && prefetcher) {
          stats.prefetched += prefetcher->prefetchMiss(address, tid, *this);
       }
    }
@@ -328,9 +329,10 @@ MultiCacheSystem::MultiCacheSystem(std::vector<unsigned int>& tid_to_domain,
    }
 }
 
-void SingleCacheSystem::memAccess(uint64_t address, char rw, unsigned int tid,
-                                  bool is_prefetch /*=false*/)
+void SingleCacheSystem::memAccess(uint64_t address, AccessType accessType, unsigned int tid)
 {
+   bool is_prefetch = (accessType == AccessType::Prefetch);
+
    if (doAddrTrans) {
       address = virtToPhys(address);
    }
@@ -349,7 +351,7 @@ void SingleCacheSystem::memAccess(uint64_t address, char rw, unsigned int tid,
    }
 
    // Handle hits 
-   if (rw == 'W' && hit) {  
+   if (accessType == AccessType::Write && hit) {  
       cache->changeState(set, tag, CacheState::Modified);
    }
 
@@ -374,7 +376,7 @@ void SingleCacheSystem::memAccess(uint64_t address, char rw, unsigned int tid,
       stats.local_writes++;
    }
 
-   if (rw == 'R') {
+   if (accessType == AccessType::Read) {
       new_state = CacheState::Exclusive;
    } else {
       new_state = CacheState::Modified;

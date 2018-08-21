@@ -50,20 +50,20 @@ TEST_CASE("Single cache tests", "[cache]") {
       REQUIRE(sys->stats.local_reads == 0);
       REQUIRE(sys->stats.local_writes == 0);
 
-      sys->memAccess(0x0000000000000000ULL, 'w', 0);
+      sys->memAccess(0x0000000000000000ULL, AccessType::Write, 0);
       REQUIRE(sys->stats.accesses == 1);
       REQUIRE(sys->stats.hits == 0);
       REQUIRE(sys->stats.local_reads == 1);
 
-      sys->memAccess(0x0000000000000000ULL, 'r', 0);
+      sys->memAccess(0x0000000000000000ULL, AccessType::Read, 0);
       REQUIRE(sys->stats.accesses == 2);
       REQUIRE(sys->stats.hits == 1);
       REQUIRE(sys->stats.local_reads == 1);
 
       SECTION("Set fill") {
-         sys->memAccess(0x0001000000000000ULL, 'w', 0);
-         sys->memAccess(0x0002000000000000ULL, 'w', 0);
-         sys->memAccess(0x0003000000000000ULL, 'w', 0);
+         sys->memAccess(0x0001000000000000ULL, AccessType::Write, 0);
+         sys->memAccess(0x0002000000000000ULL, AccessType::Write, 0);
+         sys->memAccess(0x0003000000000000ULL, AccessType::Write, 0);
 
          REQUIRE(sys->stats.accesses == 5);
          REQUIRE(sys->stats.hits == 1);
@@ -74,7 +74,7 @@ TEST_CASE("Single cache tests", "[cache]") {
             // 128 / 4 = 32 total sets
             for (uint64_t i = 1; i < 32; ++i) {
                uint64_t addr = tag | (i << 6);
-               sys->memAccess(addr, 'w', 0);
+               sys->memAccess(addr, AccessType::Write, 0);
             }
 
             REQUIRE(sys->stats.accesses == 36);
@@ -82,17 +82,17 @@ TEST_CASE("Single cache tests", "[cache]") {
             REQUIRE(sys->stats.local_reads == 35);
 
             // Original set should be unaffect and these should be hits
-            sys->memAccess(0x0000000000000000ULL, 'r', 0);
-            sys->memAccess(0x0001000000000000ULL, 'r', 0);
-            sys->memAccess(0x0002000000000000ULL, 'r', 0);
-            sys->memAccess(0x0003000000000000ULL, 'r', 0);
+            sys->memAccess(0x0000000000000000ULL, AccessType::Read, 0);
+            sys->memAccess(0x0001000000000000ULL, AccessType::Read, 0);
+            sys->memAccess(0x0002000000000000ULL, AccessType::Read, 0);
+            sys->memAccess(0x0003000000000000ULL, AccessType::Read, 0);
             REQUIRE(sys->stats.hits == 5);
          }
 
          SECTION("Set hits") {
-            sys->memAccess(0x0001000000000000ULL, 'r', 0);
-            sys->memAccess(0x0002000000000000ULL, 'r', 0);
-            sys->memAccess(0x0003000000000000ULL, 'r', 0);
+            sys->memAccess(0x0001000000000000ULL, AccessType::Read, 0);
+            sys->memAccess(0x0002000000000000ULL, AccessType::Read, 0);
+            sys->memAccess(0x0003000000000000ULL, AccessType::Read, 0);
 
             REQUIRE(sys->stats.accesses == 8);
             REQUIRE(sys->stats.hits == 4);
@@ -100,25 +100,25 @@ TEST_CASE("Single cache tests", "[cache]") {
          }
 
          SECTION("Evict") {
-            sys->memAccess(0x0004000000000000ULL, 'w', 0);
+            sys->memAccess(0x0004000000000000ULL, AccessType::Write, 0);
             REQUIRE(sys->stats.local_reads == 5);
             REQUIRE(sys->stats.hits == 1);
 
-            sys->memAccess(0x0000000000000000ULL, 'r', 0);
+            sys->memAccess(0x0000000000000000ULL, AccessType::Read, 0);
             REQUIRE(sys->stats.local_reads == 6);
             REQUIRE(sys->stats.hits == 1);
          }
 
          SECTION("Evict LRU") {
-            sys->memAccess(0x0000000000000000ULL, 'r', 0);
+            sys->memAccess(0x0000000000000000ULL, AccessType::Read, 0);
             REQUIRE(sys->stats.local_reads == 4);
             REQUIRE(sys->stats.hits == 2);
 
-            sys->memAccess(0x0004000000000000ULL, 'w', 0);
+            sys->memAccess(0x0004000000000000ULL, AccessType::Write, 0);
             REQUIRE(sys->stats.local_reads == 5);
             REQUIRE(sys->stats.hits == 2);
 
-            sys->memAccess(0x0000000000000000ULL, 'r', 0);
+            sys->memAccess(0x0000000000000000ULL, AccessType::Read, 0);
             REQUIRE(sys->stats.local_reads == 5);
             REQUIRE(sys->stats.hits == 3);
          }

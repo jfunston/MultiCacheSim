@@ -61,13 +61,21 @@ int main()
    while(!infile.eof())
    {
       infile.ignore(256, ':');
+
       infile >> rw;
       assert(rw == 'R' || rw == 'W');
+      AccessType accessType;
+      if (rw == 'R') {
+         accessType = AccessType::Read;
+      } else {
+         accessType = AccessType::Write;
+      }
+
       infile >> hex >> address;
       if(address != 0) {
          // By default the pinatrace tool doesn't record the tid,
          // so we make up a tid to stress the MultiCache functionality
-         sys.memAccess(address, rw, lines%2);
+         sys.memAccess(address, accessType, lines%2);
       }
 
       ++lines;
